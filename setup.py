@@ -1,10 +1,12 @@
-from setuptools import setup, find_packages
+import os
 
-import ictv.common
+from setuptools import setup
+
+exec(open(os.path.join(os.path.dirname(__file__), 'doc', 'conf.py')).read())
 
 setup(
     name='ictv-plugins',
-    version=ictv.common.__version__,
+    version=release,
     packages=['ictv.plugins.editor', 'ictv.plugins.embed', 'ictv.plugins.img-grabber', 'ictv.plugins.rss'],
     package_dir={'ictv': 'ictv'},
     url='https://github.com/UCL-INGI/ICTV',

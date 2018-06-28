@@ -22,16 +22,14 @@ sys.path.insert(0, os.path.abspath('../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'ICTV'
+project = 'ICTV plugins'
 copyright = '2016-2018, Université catholique de Louvain'
 author = 'Nicolas Detienne, Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin'
 
-import ictv
 # The short X.Y version
-version = '.'.join(list(ictv.__version__.split('.'))[0:2])
-print(version)
+version = '0.2'
 # The full version, including alpha/beta/rc tags
-release = ictv.__version__
+release = '0.2.2'
 
 
 # -- General configuration ---------------------------------------------------
