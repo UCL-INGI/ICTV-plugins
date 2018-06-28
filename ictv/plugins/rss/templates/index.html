@@ -1,0 +1,139 @@
+$def with (channel, config_content)
+
+$#    This file belongs to the ICTV project, written by Nicolas Detienne,
+$#    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
+$#    at Université catholique de Louvain.
+$#
+$#    Copyright (C) 2016-2018  Université catholique de Louvain (UCL, Belgium)
+$#
+$#    ICTV is free software: you can redistribute it and/or modify
+$#    it under the terms of the GNU Affero General Public License as published
+$#    by the Free Software Foundation, either version 3 of the License, or
+$#    (at your option) any later version.
+$#
+$#    ICTV is distributed in the hope that it will be useful,
+$#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+$#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+$#    GNU Affero General Public License for more details.
+$#
+$#    You should have received a copy of the GNU Affero General Public License
+$#    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+
+<link rel="stylesheet" href="/static/plugins/rss/jquery.json-viewer.min.css">
+<section class="content-header">
+    <h1>
+        $channel.name
+        <small>RSS IDE</small>
+    </h1>
+</section>
+<section class="content">
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="box">
+                <form action="/channels" method="post">
+                    <div class="box-body">
+                            $:config_content
+                    </div>
+                    <div class="box-footer">
+                            <a href="/channels" class="btn btn-default">Cancel</a>
+                            <a href="#" class="btn btn-s btn-primary" id="refresh-page">Refresh</a>
+                            <button type="submit" class="btn btn-warning">Update configuration</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Feed entries</h3>
+                </div>
+                <div id="feed" class="box-body" style="height: 87%; overflow-y: scroll;">
+
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Plugin output</h3>
+                </div>
+                <div id="raw" class="box-body" style="height: 40%; overflow-y: scroll;">
+
+                </div>
+            </div>
+            <div class="box">
+                <div class="box-header">
+                    <h3 class="box-title">Plugin preview</h3>
+                </div>
+                <div id="preview" class="box-body" style="height: 40%;">
+                    <form action="preview" method="post" target="iframe" id="form" enctype="multipart/form-data">
+                        <input type="hidden" name="config" value="">
+                    </form>
+                    <div class="embed-responsive embed-responsive-16by9">
+                        <iframe name="iframe" class="embed-responsive-item" src="" frameBorder="0"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+<script src="/static/plugins/rss/jquery.json-viewer.min.js"></script>
+<script>
+    function addField(self, field) {
+        var div = '<div class="input-group">' + field + '<span class="input-group-addon" onclick="$$(this).parent().remove()"><i class="fa fa-trash"></i></span></div>';
+        $$(self).before(div);
+        $$('input,select').off('change');
+        $$('input,select').change(onInputChange);
+    }
+</script>
+<script>
+    var feed = null;
+    $$(window).load(function() {
+        $$('#edit-url').change(function(e) {
+            updateFeed(e.target.value);
+        });
+        //$$('input,select').change(onInputChange);
+        //onInputChange();
+        //updateFeed($$('#edit-url').val());
+    });
+
+    $$('#refresh-page').click(function(){
+        onInputChange();
+        updateFeed($$('#edit-url').val());
+    });
+    function onInputChange() {
+        var config = {};
+        $$('input,select').each(function (i, e) {
+            var name = e.getAttribute('name');
+            if (name.endsWith('_rules')) {
+                if(!(name in config)) {
+                    config[name] = [];
+                }
+                config[name].push(e.value);
+            } else {
+                if (e.getAttribute('type') == 'number') {
+                    config[name] = parseInt(e.value);
+                } else {
+                    config[name] = e.value;
+                }
+            }
+        });
+        config['feed'] = feed;
+        $$.post('content', JSON.stringify(config), function(data, status) {
+            if(status=='success') {
+                $$('#raw').jsonViewer(data);
+                $$('#form input').val(JSON.stringify(config));
+                $$('#form').submit();
+            }
+        }, 'json');
+
+    }
+    function updateFeed(url) {
+        $$.post('feed', url, function(data, status) {
+                if(status=='success') {
+                    feed = data;
+                    $$('#feed').jsonViewer(data);
+                }
+        }, 'json');
+    }
+</script>

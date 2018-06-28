@@ -1,0 +1,43 @@
+plugin:
+  webapp: no
+  static: no
+  description: |
+    This plugin embeds an image and a text as legend in a simple way. It uses CSS selector to specify which content to grab from the specified page.
+  dependencies:
+    - pyquery
+channels_params:
+  url:
+    name: 'URL of the page'
+    placeholder: 'Url format'
+    type: string
+    default: 'http://apod.nasa.gov/apod/astropix.html'
+  image_selector:
+    name: 'Image CSS selector'
+    placeholder: 'CSS selector'
+    type: string
+    default: 'img'
+  src_attr:
+    name: 'Attribute holding the image source url'
+    placeholder: 'HTML attribute'
+    type: string
+    default: 'src'
+  text_selector:
+    name: 'Text CSS selector'
+    placeholder: 'CSS selector'
+    type: string
+    default: 'center>b'
+  alternative_text:
+    name: 'Alternative text if a text cannot be found with the selector above'
+    placeholder: 'Plain text'
+    type: string
+    default: ''
+  duration:
+    name: 'Slide duration in seconds'
+    placeholder: 'Slide duration in seconds'
+    type: int
+    default: 10
+    min: 1
+  qrcode:
+    name: 'Embed the url of the page as a QR code'
+    type: bool
+    default: no

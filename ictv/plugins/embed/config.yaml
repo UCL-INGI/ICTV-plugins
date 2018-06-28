@@ -1,0 +1,45 @@
+plugin:
+  webapp: no
+  static: yes
+  dependencies:
+    - bs4
+channels_params:
+  link:
+    name: 'Link to the page to be embedded'
+    placeholder: 'URL'
+    type: string
+    default: 'http://www.meteo.be/services/widget/?postcode=1348&nbDay=2&type=4&lang=fr&bgImageId=1&bgColor=567cd2&scrolChoice=0&colorTempMax=A5D6FF&colorTempMin=ffffff'
+  width:
+    name: 'Width of the iframe'
+    placeholder: ''
+    type: int
+    default: 334
+    min: 1
+  height:
+    name: 'Height of the iframe'
+    placeholder: ''
+    type: int
+    default: 175
+    min: 1
+  refresh_rate:
+    name: 'Interval between cache updates in hours'
+    placeholder: ''
+    type: int
+    default: 1
+    min: 0
+  duration:
+    name: 'Slide duration in seconds'
+    placeholder: ''
+    type: int
+    default: 10
+    min: 1
+  jquery:
+    name: 'Add JQuery to page header'
+    placeholder: ''
+    type: bool
+    default: no
+  jquery_ui:
+    name: 'Add JQuery UI to page header'
+    placeholder: ''
+    type: bool
+    default: no

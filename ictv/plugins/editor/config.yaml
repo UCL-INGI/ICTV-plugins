@@ -1,0 +1,32 @@
+plugin:
+  webapp: yes
+  static: yes
+channels_params:
+  vertical:
+    name: 'Activate the vertical screen mode for the Editor'
+    type: bool
+    default: no
+  duration:
+    name: 'Default slide duration in seconds'
+    placeholder: 'Slide duration in seconds'
+    type: int
+    default: 5
+    min: 1
+  force_duration:
+    name: 'Force the duration of all slides to the default slide duration'
+    type: bool
+    default: no
+  capsule_validity:
+    name: 'Default capsule validity period in hours'
+    placeholder: 'Capsule validity in hours'
+    type: int
+    default: 168
+    min: 1
+  default_template:
+    name: 'Default template when creating a slide'
+    type: template
+    default: template-text-image
+  ban_templates_list:
+    name: 'Ban templates from editor'
+    type: template_list
+    default: !!null

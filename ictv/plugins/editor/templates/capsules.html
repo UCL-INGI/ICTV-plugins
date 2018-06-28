@@ -1,0 +1,967 @@
+$def with (channel, capsules, expired_capsules, capsules_all, default_from, default_to, vertical)
+
+$#    This file belongs to the ICTV project, written by Nicolas Detienne,
+$#    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
+$#    at Universite Catholique de Louvain.
+$#
+$#    Copyright (C) 2017  Universite Catholique de Louvain (UCL, Belgium)
+$#
+$#    ICTV is free software: you can redistribute it and/or modify
+$#    it under the terms of the GNU Affero General Public License as published
+$#    by the Free Software Foundation, either version 3 of the License, or
+$#    (at your option) any later version.
+$#
+$#    ICTV is distributed in the hope that it will be useful,
+$#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+$#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+$#    GNU Affero General Public License for more details.
+$#
+$#    You should have received a copy of the GNU Affero General Public License
+$#    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+
+
+
+$code:
+    feedbacks = get_next_feedbacks()
+    form = pop_previous_form()
+
+    def get_data_edit_object(capsule):
+        object = {'id': capsule.id, 'name': capsule.name}
+        object['from'] = c.validity_from.replace(microsecond=0).isoformat()
+        object['to'] = c.validity_to.replace(microsecond=0).isoformat()
+        return json.dumps(object)
+
+<link rel="stylesheet" href="/static/plugins/editor/css/jquery-ui.min.css">
+<link rel="stylesheet" href="/static/plugins/editor/css/bootstrap-datetimepicker.min.css">
+<style>
+    /* show the move cursor as the user moves the mouse over the panel header.*/
+    #draggableList .panel-heading {
+        cursor: move;
+    }
+    button i.fa {
+        margin-right: 6px;
+    }
+
+    .flex-item{
+        margin-left: 3px;
+        margin-right: 3px;
+    }
+
+    ul.nav.nav-pills li a[data-toggle="pill"] {
+        padding-top: 12px;
+        height: 50px;
+    }
+
+    ul .panel-body {
+        padding: 8px 6px;
+    }
+
+    ul .panel {
+        margin-bottom: 15px;
+    }
+
+    .box.box-capsule {
+        height: 92.5vh;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+    }
+    .embed-responsive-9by16 {
+         padding-bottom: 80vh;
+    }
+</style>
+$def create_alert(title, message, icon):
+    <div class="alert alert-success alert-dismissible">
+        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+        <h4><i class="icon fa $icon"></i>$title</h4>
+        $message
+    </div>
+<section class="content" style="padding-top: 0;">
+    <nav class="navbar navbar-default" style="margin-bottom: 6px;">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">$channel.name Editor</a>
+            <ul class="nav nav-pills">
+                <li><a data-toggle="pill" href="#previous">Expired</a></li>
+                <li><a data-toggle="pill" href="#current">Current and Future</a></li>
+                <li><a data-toggle="pill" href="#list">List</a></li>
+
+                <li>
+                    <button style="margin-top: 8px;margin-left: 10px" type="button" id="button-create-capsule" class="btn btn-primary" data-toggle="modal" data-target="#create-capsule-modal">
+                        <i class="fa fa-plus"></i>Create a new capsule
+                    </button>
+
+                    <div id="message-when-dragged" hidden="true">
+                        <form id="form-order" method="post" enctype="multipart/form-data" style="margin: 0px">
+                            <div class="alert alert-info" style="padding: 2px 8px;margin: 4px 0px 0px;">
+                                <div class="flex-container" style="display: flex; align-items: center">
+                                    <h5 class="flex-item">You have changed the capsules order. Do you want to save the changes ?</h5>
+                                    <button type="submit" class="btn btn-xs btn-primary flex-item">Save</button>
+                                    <a style="text-decoration: none" type="button" class="btn btn-xs btn-primary flex-item" href="capsules" id="order-cancel">Cancel</a>
+                                </div>
+                            </div>
+                            <input type="hidden" class="form-control" id="form-new-order" name="order">
+                            <input type="hidden" class="form-control" name="action" value="order">
+                        </form>
+                    </div>
+                </li>
+                <li>
+                    <button style="margin-top: 8px;margin-left: 10px" type="button" id="button-import-capsule" class="btn btn-primary" data-toggle="modal" data-target="#import-capsule-modal">
+                        <i class="fa fa-upload"></i>Import a capsule from PDF
+                    </button>
+                </li>
+                <li>
+                    <button style="margin-top: 8px;margin-left: 10px" type="button" id="button-import-video" class="btn btn-primary" data-toggle="modal" data-target="#import-video-modal">
+                        <i class="fa fa-film"></i>Import a video
+                    </button>
+                </li>
+                <li class="pull-right">
+                    <button style="margin-top: 8px;margin-left: 10px" type="button" class="btn btn-primary" onclick="$$('#tour-started').submit();">
+                        <i class="fa fa-2x fa-question-circle" style="max-height: 20px; position: relative; left: 3px; bottom: 4px;"></i>
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+
+    <div class="tab-content">
+        <div id="previous" class="tab-pane fade">
+                <div class="row">
+                    <div class="$('col-md-3 col-lg-3 col-xl-2' if not vertical else 'col-md-4 col-lg-4 col-xl-3')" style="padding-right: 0">
+                        <div class="box box-capsule">
+                            <div class="box-header with-border">
+                                <h2 class="box-title">Expired capsules list</h2>
+                            </div>
+                            <div class="box-body" style="flex: 1; overflow-y: scroll;">
+                                $if feedbacks.has('create', 'ok'):
+                                    $:create_alert("Added", "This capsule has been successfully added.", "fa-check")
+
+                                $elif feedbacks.has('delete', 'ok'):
+                                    $:create_alert("Deleted", "This capsule has been successfully deleted.", "fa-trash")
+
+                                $elif feedbacks.has('duplicate', 'ok'):
+                                    $:create_alert("Duplicated", "This capsule has been successfully duplicated.", "fa-copy")
+
+                                $elif feedbacks.has('import', 'ok'):
+                                    $:create_alert("Imported", "This capsule has been successfully imported.", "fa-upload")
+
+                                $elif feedbacks.has('order', 'ok'):
+                                    $:create_alert("Reordered", "The capsules have been successfully reordered.", "fa-sort")
+
+                                <ul id="previous-draggableList" class="list-unstyled">
+                                $for c in expired_capsules:
+                                    <li class="panel panel-info" data-capsuleid="$c.id" data-capsule-order="$loop.index0" data-capsulename="$c.name" style="$('box-shadow: 0pt 0pt 4pt #00a637' if loop.first else '')">
+                                        <div class="panel-heading text-center">$c.name ($c.slides.count() slides)</div>
+                                        <div class="panel-body text-center">
+                                            <button class="btn btn-xs btn-success button-preview-expired" data-target=""><i class="fa fa-eye"></i>Preview</button>
+                                            <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#edit-capsule-modal" onclick="data_edit= $get_data_edit_object(c)"><i class="fa fa-pencil"></i>Edit</button>
+                                            <a class="btn btn-xs btn-primary" href="capsules/$c.id"><i class="fa fa-folder-open"></i>Open</a>
+                                            <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#duplicate-capsule-modal"><i class="fa fa-copy"></i>Duplicate</button>
+                                            <button class="btn btn-xs btn-danger" data-toggle="modal" data-target="#delete-capsule-modal"><span class="glyphicon glyphicon-trash"></span>Delete</button>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="$('col-md-9 col-lg-9 col-xl-8' if not vertical else 'col-md-4 col-lg-4 col-xl-4 pull-right')">
+                        <div class="box">
+                            <div class="box-header with-border">
+                                <h1 class="box-title" style="text-align: center;vertical-align: middle;">$channel.name Channel preview</h1>
+                            </div>
+                            <div class="box-body">
+                                <div class="embed-responsive $('embed-responsive-16by9' if not vertical else 'embed-responsive-9by16')">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+        <div id="current" class="tab-pane fade">
+                <div class="row">
+                    <div class="$('col-md-3 col-lg-3 col-xl-2' if not vertical else 'col-md-4 col-lg-4 col-xl-3 ')" style="padding-right: 0;">
+                        <div class="box box-capsule">
+                            <div class="box-header with-border">
+                                <h2 class="box-title">Capsules list</h2>
+                            </div>
+                            <div class="box-body" style="flex: 1; overflow-y: scroll;">
+                                $if feedbacks.has('create', 'ok'):
+                                    $:create_alert("Added", "This capsule has been successfully added.", "fa-check")
+
+                                $elif feedbacks.has('delete', 'ok'):
+                                    $:create_alert("Deleted", "This capsule has been successfully deleted.", "fa-trash")
+
+                                $elif feedbacks.has('duplicate', 'ok'):
+                                    $:create_alert("Duplicated", "This capsule has been successfully duplicated.", "fa-copy")
+
+                                $elif feedbacks.has('import', 'ok'):
+                                    $:create_alert("Imported", "This capsule has been successfully imported.", "fa-upload")
+
+                                $elif feedbacks.has('order', 'ok'):
+                                    $:create_alert("Reordered", "The capsules have been successfully reordered.", "fa-sort")
+                                <ul id="draggableList" class="list-unstyled">
+                                $for c in capsules:
+                                    <li class="panel $('panel-info' if c.is_active else 'panel-default')" data-capsuleid="$c.id" data-capsule-order="$loop.index0" data-capsulename="$c.name" $:('data-toggle="tooltip" data-placement="right" title="This capsule is inactive right now. It will become active at ' + c.pretty_from + '"' if not c.is_active else '') style="$('box-shadow: 0pt 0pt 4pt #00a637git pull' if loop.first else '')">
+                                        <div class="panel-heading text-center">$c.name ($c.slides.count() slides)</div>
+                                        <div class="panel-body text-center">
+                                            <button class="btn btn-xs btn-success button-preview" data-target=""><i class="fa fa-eye"></i>Preview</button>
+                                            <button class="btn btn-xs btn-warning" data-toggle="modal" data-target="#edit-capsule-modal" onclick="data_edit={'name': '$(c.name)', 'id': '$c.id', 'from': '$c.validity_from.replace(microsecond=0).isoformat()', 'to': '$c.validity_to.replace(microsecond=0).isoformat()'};"><i class="fa fa-pencil"></i>Edit</button>
+                                            <a class="btn btn-xs btn-primary" href="capsules/$c.id"><i class="fa fa-folder-open"></i>Open</a>
+                                            <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#duplicate-capsule-modal"><i class="fa fa-copy"></i>Duplicate</button>
+                                            <button class="btn btn-xs btn-danger" data-toggle="modal" data-target="#delete-capsule-modal"><span class="glyphicon glyphicon-trash"></span>Delete</button>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="$('col-md-9 col-lg-9 col-xl-8' if not vertical else 'col-md-4 col-lg-4 col-xl-4 pull-right')">
+                        <div class="box">
+                            <div class="box-header with-border">
+                                <h1 class="box-title">$channel.name channel preview</h1>
+                            </div>
+                            <div class="box-body">
+                                <div class="embed-responsive $('embed-responsive-16by9' if not vertical else 'embed-responsive-9by16')">
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+
+        <div id="list" class="tab-pane fade">
+            $if feedbacks.has('edit', 'ok'):
+                <div class="alert alert-success alter-dismissible" style="margin-top: 15px" role="alert">
+                    <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                    <h4><i class="icon fa fa-check"></i>Edited</h4>
+                    The capsule <i>$form.name</i> has been successfully edited
+                </div>
+            <div class="box">
+                <div class="box-body">
+                    <table id="table" class="table table-hover table-bordered" cellspacing="0">
+                        <thead>
+                            <th>Name</th>
+                            <th>Created By</th>
+                            <th>Validity start</th>
+                            <th>Validity end</th>
+                            <th>Theme</th>
+                            <th>Action</th>
+                        </thead>
+                        <tfoot>
+                            <th>Name</th>
+                            <th>Created By</th>
+                            <th>Validity start</th>
+                            <th>Validity end</th>
+                            <th>Theme</th>
+                            <th>Action</th>
+                        </tfoot>
+                        <tbody>
+                            $for caps in capsules_all:
+                                <tr data-capsid="$caps.id"
+                                    data-caps-from="$caps.validity_from.replace(microsecond=0).isoformat()"
+                                    data-caps-to="$caps.validity_to.replace(microsecond=0).isoformat()">
+                                    <td>$caps.name</td>
+                                    <td>$caps.owner.fullname</td>
+                                    <td>$caps.validity_from.replace(microsecond=0).isoformat(' ')</td>
+                                    <td>$caps.validity_to.replace(microsecond=0).isoformat(' ')</td>
+                                    <td>$caps.theme</td>
+                                    <td>
+                                        <a class="btn btn-xs btn-primary" href="capsules/$caps.id"><i class="fa fa-folder-open"></i>Open</a>
+                                        <button class="btn btn-xs btn-warning" data-toggle="modal"
+                                                onclick="data_edit={'name': '$(caps.name)', 'id': '$caps.id', 'from': '$caps.validity_from.replace(microsecond=0).isoformat()', 'to': '$caps.validity_to.replace(microsecond=0).isoformat()'};"
+                                                data-target="#edit-capsule-modal" data-capsuleid="$caps.id"
+                                                data-capsulename="$caps.name"
+                                                data-caps-from="$caps.validity_from.replace(microsecond=0).isoformat()"
+                                                data-caps-to="$caps.validity_to.replace(microsecond=0).isoformat()">
+                                            <i class="fa fa-pencil-square-o"></i>Edit</button>
+                                    </td>
+                                </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<div class="modal fade" id="delete-capsule-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-delete" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Delete this capsule</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('delete', 'no_id_matching'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you want to delete a capsule that doesn't exist...
+                        </div>
+                    $if feedbacks.has('delete', 'invalid_id'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you want to delete a capsule with an invalid id...
+                        </div>
+                    $if feedbacks.has('delete', 'wrong_channel'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you seem want to delete a capsule from another channel...
+                        </div>
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" id="delete-id" name="id" value="$(form.get('id') if form.get('action') == 'delete' else None)">
+                    <div class="form-group">
+                        <label for="delete-name">Capsule name</label>
+                        <input type="text" class="form-control" id="delete-name" placeholder="Name" disabled>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="duplicate-capsule-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-duplicate" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Duplicate this capsule</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('duplicate', 'no_id_matching'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you want to duplicate a capsule that doesn't exist...
+                        </div>
+                    $if feedbacks.has('duplicate', 'invalid_id'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you want to duplicate a capsule with an invalid id...
+                        </div>
+                    $if feedbacks.has('duplicate', 'wrong_channel'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, you seem want to duplicate a capsule from another channel...
+                          </div>
+                    <input type="hidden" name="action" value="duplicate">
+                    <input type="hidden" id="duplicate-id" name="id" value="$(form.get('id') if form.get('action') == 'duplicate' else None)">
+                    <div class="form-group">
+                        <label for="duplicate-name">Capsule name</label>
+                        <input type="text" class="form-control" id="duplicate-name" placeholder="Name" disabled>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Duplicate</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="create-capsule-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-create" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Create a new capsule</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('create', 'name_already_exists'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, there already exists a capsule with this name on this channel. Please choose another name
+                        </div>
+                    $if feedbacks.has('create', 'invalid_name'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid name for the capsule (not only spaces, at least 2 characters not counting spaces)
+                        </div>
+                    $if feedbacks.has('create', 'dates_inverted'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid date range, the dates are inverted.
+                        </div>
+                    <div id="create-warning-text" class="alert alert-warning" hidden><b>Warning: </b> The capsule validity you set has already expired. This capsule will not appear in the channel's content.</div>
+                    <input type="hidden" name="action" value="create">
+                    <div class="form-group">
+                        <label for="create-name">Capsule name</label>
+                        <input type="text" name="name" class="form-control" id="create-name" value="$(form.get('name') if form.get('action') == 'create' else None)" placeholder="Name" required>
+                        <label for="datetimepickerfromcreate">Start of validity</label>
+                        <div class='input-group date' id='datetimepickerfromcreate'>
+                            <input id="date-from-create" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                        <label for="datetimepickertocreate">End of validity</label>
+                        <div class='input-group date' id='datetimepickertocreate'>
+                            <input id="date-to-create" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                        <input id="date-to-create-hidden" name="date-to" type="hidden">
+                        <input id="date-from-create-hidden" name="date-from" type="hidden">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="create-submit" class="btn btn-success">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="import-capsule-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-import-capsule" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Import a capsule</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('import-capsule', 'name_already_exists'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, there already exists a capsule with this name on this channel. Please choose another name
+                        </div>
+                    $if feedbacks.has('import-capsule', 'invalid_name'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid name for the capsule (not only spaces, at least 2 characters not counting spaces)
+                        </div>
+                    $if feedbacks.has('import-capsule', 'dates_inverted'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid date range, the dates are inverted.
+                        </div>
+                    <input type="hidden" name="action" value="import-capsule">
+                    <div class="form-group">
+                        <div class="form-group">
+                            <label for="pdf">PDF file to import</label>
+                            <input type="file" id="pdf" name="pdf" accept="application/pdf" required>
+                            <p class="help-block">Each page will be converted to a slide.</p>
+                        </div>
+
+                        <div class="checkbox">
+                            <label data-toggle="tooltip" data-placement="right" title="Checking this will set the background to white instead of the default black.">
+                                <input type="checkbox" name="white-background">Make the background white
+                            </label>
+                        </div>
+                        <label for="create-name">Capsule name</label>
+                        <input type="text" name="name" class="form-control" id="import-capsule-name" value="$(form.get('name') if form.get('action') == 'import' else None)" placeholder="Name" required>
+                        <label for="datetimepickerfromimportcapsule">Start of validity</label>
+                        <div class='input-group date' id='datetimepickerfromimportcapsule'>
+                            <input id="date-from-import-capsule" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+
+                        <label for="datetimepickertoimportcapsule">End of validity</label>
+                        <div class='input-group date' id='datetimepickertoimportcapsule'>
+                            <input id="date-to-import-capsule" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+
+                        <input id="date-to-import-capsule-hidden" name="date-to" type="hidden">
+                        <input id="date-from-import-capsule-hidden" name="date-from" type="hidden">
+                    </div>
+                </div>
+                <div class="modal-footer" style="vertical-align: middle">
+                    <p class="pull-left help-block">Importing a capsule can take a long time, please remain patient ;)</p>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="import-capsule-submit" class="btn btn-success">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="import-video-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-import-video" method="post" enctype="multipart/form-data">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Import a video</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('import-video', 'name_already_exists'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, there already exists a capsule with this name on this channel. Please choose another name
+                        </div>
+                    $if feedbacks.has('import-video', 'invalid_name'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid name for the capsule (not only spaces, at least 2 characters not counting spaces)
+                        </div>
+                    $if feedbacks.has('import-video', 'dates_inverted'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid date range, the dates are inverted.
+                        </div>
+                    $if feedbacks.has('import-video', 'invalid_video_format'):
+                        $ format = feedbacks.feedback_value()
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Your video could not be transcoded to WebM automatically, please do so manually and try again.
+                        </div>
+                    $if feedbacks.has('import-video', 'video_transcoding'):
+                        $ path = feedbacks.feedback_value()
+                        <div class="alert alert-info alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Your video will be transcoded to be used inside ICTV. Once done, a slide will be added to this capsule.
+                            You can close this page if you are done, but it will not be possible to check the transcoding progress again.
+                        </div>
+                        <p id="transcode-status-message">Your video has been accepted in the transcoding queue. It will start as soon as preceding transcoding jobs will complete.</p>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-green" role="progressbar" style="width: 0; min-width: 3em;">
+                                0%
+                            </div>
+                        </div>
+                        <script>
+                            function updateProgress() {
+                                $$.get('/transcoding/' + btoa("$path") + '/progress',
+                                    null,
+                                    function(data) {
+                                        const progress = (data.progress * 100).toFixed(1);
+                                        $$('.progress-bar-green').css('width', progress + '%');
+                                        $$('.progress-bar-green').text(progress + '%');
+                                        if (data.progress < 1) {
+                                            setTimeout(updateProgress, 5000)
+                                            if (data.progress > 0) {
+                                                $$('#transcode-status-message').text('Your video is being transcoded by ICTV.');
+                                            }
+                                        } else {
+                                            setTimeout(function() {
+                                                window.location = window.location.href.substring(0, window.location.href.indexOf('#'));
+                                            }, 5000);
+                                        }
+                                    },
+                                    'json'
+                                )
+                            }
+                            updateProgress()
+                        </script>
+                    <input type="hidden" name="action" value="import-video">
+                    <div class="form-group">
+                        <div class="form-group">
+                            <label for="video">Video to import</label>
+                            <input type="file" id="video" name="video" accept="video/*" required>
+                            <p class="help-block">WebM videos files are supported, other formats will be transcoded by ICTV. A capsule containing the video will be created. Its duration will match the video length.</p>
+                        </div>
+
+                        <div class="checkbox">
+                            <label data-toggle="tooltip" data-placement="right" title="Checking this will set the background to white instead of the default black.">
+                                <input type="checkbox" name="white-background">Make the background white
+                            </label>
+                        </div>
+                        <label for="import-video-name">Capsule name</label>
+                        <input type="text" name="name" class="form-control" id="import-video-name" value="$(form.get('name') if form.get('action') == 'import-video' else None)" placeholder="Name" required>
+                        <label for="datetimepickerfromimportvideo">Start of validity</label>
+                        <div class='input-group date' id='datetimepickerfromimportvideo'>
+                            <input id="date-from-import-video" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+
+                        <label for="datetimepickertoimportvideo">End of validity</label>
+                        <div class='input-group date' id='datetimepickertoimportvideo'>
+                            <input id="date-to-import-video" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+
+                        <input id="date-to-import-video-hidden" name="date-to" type="hidden">
+                        <input id="date-from-import-video-hidden" name="date-from" type="hidden">
+                    </div>
+                </div>
+                <div class="modal-footer" style="vertical-align: middle">
+                    <p class="pull-left help-block">Importing can take a long time, please remain patient ;)</p>
+                    $if not feedbacks.has('import-video', 'video_transcoding'):
+                        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                        <button type="submit" id="import-video-submit" class="btn btn-success">Import</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="edit-capsule-modal" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="" id="form-edit" method="post">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span
+                            aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Edit capsule</h4>
+                </div>
+                <div class="modal-body">
+                    $if feedbacks.has('edit', 'name_already_exists'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Oh-oh, there already exists a capsule with this name on this channel. Please choose another name
+                        </div>
+                    $if feedbacks.has('edit', 'invalid_name'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid name for the capsule (not only spaces, at least 2 characters not counting spaces)
+                        </div>
+                    $if feedbacks.has('edit', 'dates_inverted'):
+                        <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
+                            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
+                            Please choose a valid date range, the dates are inverted.
+                        </div>
+                    <div id="edit-warning-text" class="alert alert-warning" hidden><b>Warning: </b> The capsule validity you set has already expired. This capsule will not appear in the channel's content.</div>
+                    <input type="hidden" name="action" value="edit">
+                    <div class="form-group">
+                        <label for="edit-name">Capsule name</label>
+                        <input type="text" name="name" class="form-control" id="edit-name" value="$(form.get('name') if form.get('action') == 'create' else None)" placeholder="Name">
+                        <label for="datetimepickerfrom">Start of validity</label>
+                        <div class='input-group date' id='datetimepickerfrom'>
+                            <input id="date-from" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                        <label for="datetimepickerto">End of validity</label>
+                        <div class='input-group date' id='datetimepickerto'>
+                            <input id="date-to" type='text' class="form-control"/>
+                            <span class="input-group-addon">
+                                <span class="glyphicon glyphicon-calendar"></span>
+                            </span>
+                        </div>
+                        <input id="date-to-hidden" name="date-to" type="hidden">
+                        <input id="date-from-hidden" name="date-from" type="hidden">
+                        <input type="hidden" id="edit-id" name="id" value="$(form.get('id') if form.get('action') == 'edit' else None)">
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="submit" id="edit-submit" class="btn btn-primary">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="/static/plugins/editor/js/jquery-ui.min.js"></script>
+<script type="text/javascript" src="/static/plugins/editor/js/moment.js"></script>
+<script type="text/javascript" src="/static/plugins/editor/js/en-gb.min.js"></script>
+<script type="text/javascript" src="/static/plugins/editor/js/bootstrap-datetimepicker.min.js"></script>
+<script>
+    $$(window).resize(function() {
+        setTimeout(function () {
+            $$('.col-lg-3.col-xl-2 .box').height(parseInt($$('.content-wrapper').css('min-height'))-68);
+        }, 10);
+    });
+    $$(document).ready(function () {
+        if(!window.location.hash) {
+            window.location.hash = '#current';
+        }
+        update_iframe(window.location.hash);
+        $$(window.location.hash).removeClass('fade');
+        $$('[data-toggle="pill"][href="'+window.location.hash+'"]').tab('show');
+        $$(window.location.hash).addClass('fade');
+        $$('[data-toggle="pill"][href]').click(function() {
+            var hash = this.getAttribute('href');
+            window.location.hash = hash;
+        });
+        $$(document).on('shown.bs.tab', 'a[data-toggle="pill"]', function () {
+            update_iframe(this.getAttribute('href'));
+        });
+        $$('[data-toggle="tooltip"]').tooltip();
+        $$('.col-lg-3.col-xl-2 .box').height(parseInt($$('.content-wrapper').css('min-height'))-68);
+
+        $$(document).ready(function() {
+            $$('#table').DataTable({stateSave: true});
+        } );
+        $$dtpfrom = $$('#datetimepickerfrom');
+        $$dtpto = $$('#datetimepickerto');
+        $$dtpfrom.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            sideBySide: true,
+            locale: 'en-gb'
+        });
+        $$dtpto.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$dtpfromcreate = $$('#datetimepickerfromcreate');
+        $$dtptocreate = $$('#datetimepickertocreate');
+        $$dtpfromcreate.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            sideBySide: true,
+            locale: 'en-gb'
+        });
+        $$dtptocreate.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$dtptocreate.on("dp.change", function(e){
+            if(e.date < Date.now()){
+                $$('#create-warning-text').show();
+            }
+            else{
+                $$('#create-warning-text').hide();
+            }
+        });
+        $$dtpto.on("dp.change", function(e){
+            if(e.date < Date.now()){
+                $$('#edit-warning-text').show();
+            }
+            else{
+                $$('#edit-warning-text').hide();
+            }
+        });
+        $$dtpfromimportcapsule = $$('#datetimepickerfromimportcapsule');
+        $$dtptoimportcapsule = $$('#datetimepickertoimportcapsule');
+        $$dtpfromimportcapsule.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$dtptoimportcapsule.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$dtpfromimportvideo = $$('#datetimepickerfromimportvideo');
+        $$dtptoimportvideo = $$('#datetimepickertoimportvideo');
+        $$dtpfromimportvideo.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$dtptoimportvideo.datetimepicker({
+            format: 'DD MMM YYYY, H[h]mm',
+            collapse: true,
+            locale: 'en-gb'
+        });
+        $$('#edit-submit').click(function(e){
+            var from = $$dtpfrom.data("DateTimePicker").date();
+            from = from.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-from-hidden').val(from);
+            var to = $$dtpto.data("DateTimePicker").date();
+            to = to.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-to-hidden').val(to);
+        });
+        $$('#create-submit').click(function(e){
+            var from = $$dtpfromcreate.data("DateTimePicker").date();
+            from = from.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-from-create-hidden').val(from);
+            var to = $$dtptocreate.data("DateTimePicker").date();
+            to = to.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-to-create-hidden').val(to);
+        });
+        $$('#import-capsule-submit').click(function(e){
+            var from = $$dtpfromimportcapsule.data("DateTimePicker").date();
+            from = from.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-from-import-capsule-hidden').val(from);
+            var to = $$dtptoimportcapsule.data("DateTimePicker").date();
+            to = to.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-to-import-capsule-hidden').val(to);
+        });
+        $$('#import-video-submit').click(function(e){
+            var from = $$dtpfromimportvideo.data("DateTimePicker").date();
+            from = from.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-from-import-video-hidden').val(from);
+            var to = $$dtptoimportvideo.data("DateTimePicker").date();
+            to = to.format('YYYY-MM-DDTHH:mm:ssZZ');
+            $$('#date-to-import-video-hidden').val(to);
+        });
+        var panelList = $$('#draggableList');
+
+        panelList.sortable({
+            update: function () {
+                $$('.panel', panelList).each(function (index, elem) {
+                    var $$listItem = $$(elem);
+                    newIndex = $$listItem.index();
+                    capsules_order[$$listItem.attr('data-capsuleid')] = newIndex;
+                });
+                $$('#form-new-order').val(JSON.stringify(capsules_order));
+                $$('#button-create-capsule').hide();
+                $$('#message-when-dragged').show();
+            }
+        });
+        $$(".button-preview").click(function(e){
+            order = e.currentTarget.parentElement.parentElement.getAttribute('data-capsule-order');
+            document.getElementById('iframe').contentWindow.Reveal.slide(order);
+        });
+
+        $$(".button-preview-expired").click(function(e){
+            order = e.currentTarget.parentElement.parentElement.getAttribute('data-capsule-order');
+            document.getElementById('iframePrevious').contentWindow.Reveal.slide(order);
+        });
+
+        modaldelete = $$('#delete-capsule-modal');
+        modaldelete.on('show.bs.modal', function(e){
+            var capsname = e.relatedTarget.parentElement.parentElement.getAttribute('data-capsulename');
+            var capsid = e.relatedTarget.parentElement.parentElement.getAttribute('data-capsuleid');
+            $$('#form-delete')[0].reset();
+            $$('#delete-name').attr('placeholder', capsname);
+            $$('#delete-id').val(capsid);
+        });
+        modalduplicate = $$('#duplicate-capsule-modal');
+        modalduplicate.on('show.bs.modal', function(e){
+            var capsname = e.relatedTarget.parentElement.parentElement.getAttribute('data-capsulename');
+            var capsid = e.relatedTarget.parentElement.parentElement.getAttribute('data-capsuleid');
+            $$('#form-duplicate')[0].reset();
+            $$('#duplicate-name').attr('placeholder', capsname);
+            $$('#duplicate-id').val(capsid);
+        });
+        modaledit = $$('#edit-capsule-modal');
+        modaledit.on('show.bs.modal', function(e){
+            var capsname = data_edit['name'];
+            var capsid = data_edit['id'];
+            var from = data_edit['from'];
+            var to = data_edit['to'];
+            var dateFrom = moment(from);
+            var dateTo = moment(to);
+
+            $$('#form-edit')[0].reset();
+            $$('#edit-name').val(capsname);
+            $$('#edit-id').val(capsid);
+            $$dtpfrom.data("DateTimePicker").date(dateFrom);
+            $$dtpto.data("DateTimePicker").date(dateTo);
+            if(dateTo < Date.now()){
+                $$('#edit-warning-text').show();
+            }
+            else{
+                $$('#edit-warning-text').hide();
+            }
+        });
+        modalcreate = $$('#create-capsule-modal');
+        modalcreate.on('show.bs.modal', function(e){
+            var dateFrom = moment("$default_from");
+            var dateTo = moment("$default_to");
+            $$dtpfromcreate.data("DateTimePicker").date(dateFrom);
+            $$dtptocreate.data("DateTimePicker").date(dateTo);
+            if(dateTo < Date.now()){
+                $$('#create-warning-text').show();
+            }
+            else{
+                $$('#create-warning-text').hide();
+            }
+        });
+        modalimportcapsule = $$('#import-capsule-modal');
+        modalimportcapsule.on('show.bs.modal', function(e){
+            $$dtpfromimportcapsule.data("DateTimePicker").date(moment("$default_from"));
+            $$dtptoimportcapsule.data("DateTimePicker").date(moment("$default_to"));
+        });
+        modalimportvideo = $$('#import-video-modal');
+        modalimportvideo.on('show.bs.modal', function(e){
+            $$dtpfromimportvideo.data("DateTimePicker").date(moment("$default_from"));
+            $$dtptoimportvideo.data("DateTimePicker").date(moment("$default_to"));
+        });
+
+
+        $if feedbacks.has_type('create') and not feedbacks.has('create', 'ok'):
+            fire_modal('#create-capsule-modal');
+        $elif feedbacks.has_type('delete') and not feedbacks.has('delete', 'ok'):
+            fire_modal('#delete-capsule-modal');
+        $elif feedbacks.has_type('edit') and not feedbacks.has('edit', 'ok'):
+            data_edit = {'name': '$(form.name)', 'id': '$(form.id)', 'from': '$(form["date-from"])', 'to': '$(form["date-to"])'};
+            fire_modal('#edit-capsule-modal');
+        $elif feedbacks.has_type('import-capsule') and not feedbacks.has('import-capsule', 'ok'):
+            fire_modal('#import-capsule-modal');
+        $elif feedbacks.has_type('import-video') and not feedbacks.has('import-video', 'ok'):
+            fire_modal('#import-video-modal');
+    });
+    function fire_modal(modalSelector) {
+        var $$modal = $$(modalSelector);
+        $$modal.removeClass('fade');
+        $$modal.one('hidden.bs.modal', function () {
+            $$modal.find('.alert').detach();
+            $$modal.addClass('fade');
+        });
+        $$modal.modal('show');
+    }
+
+    function update_iframe(hash) {
+        var iframe = $$(hash).find('iframe')[0];
+        if(!iframe && hash != '#list') {
+            var preview_current = '<iframe id="iframe" class="embed-responsive-item" src="preview/currentandfuture" frameBorder="0"></iframe>';
+            var preview_expired = '<iframe id="iframePrevious" class="embed-responsive-item" src="preview/expired" frameBorder="0"></iframe>';
+            $$(hash).find('div.box-body div.embed-responsive').html(hash == '#previous' ? preview_expired : preview_current);
+            $$('#iframe').on("load", function(){
+                this.contentWindow.Reveal.addEventListener('slidechanged', function(event){
+                    $$('#draggableList [data-capsule-order]').css('box-shadow', '');
+                    $$('#draggableList [data-capsule-order='+event.indexh+']').css('box-shadow', '0pt 0pt 4pt #00a637');
+                });
+                $if vertical:
+                    this.contentWindow.initPortrait();
+
+            });
+            $$('#iframePrevious').on("load", function(){
+                this.contentWindow.Reveal.addEventListener('slidechanged', function(event){
+                    $$('#previous-draggableList [data-capsule-order]').css('box-shadow', '');
+                    $$('#previous-draggableList [data-capsule-order='+event.indexh+']').css('box-shadow', '0pt 0pt 4pt #00a637');
+                });
+                $if vertical:
+                    this.contentWindow.initPortrait();
+            });
+        }
+    }
+    capsules_order = {
+        $for c in capsules:
+            $c.id:$c.c_order,
+    };
+</script>
+<script>
+    $$(document).ready(function () {
+        intro_id = 'editor_capsules';
+        intro = introJs();
+        intro.setOptions({
+            steps: [
+                {
+                    intro: "Welcome to the editor! This plugin is a slide editor able to create and manage slideshows for your channel."
+                },
+                {
+                    element: document.querySelector('.tab-pane.active .box-capsule'),
+                    intro: "A slideshow is known as a capsule inside the editor. A capsule is a list of slides with a certain validity period. Capsules are shown inside this list. They are ordered as they will appear when viewing the content of the channel. A capsule on the top of the list will appear first. You can reorder capsules by drag and dropping them into the desired order.",
+                    position: 'auto'
+                },
+                {
+                    element: document.querySelector('.tab-pane.active iframe'),
+                    intro: "A preview of all capsules is available here."
+                },
+                {
+                    element: document.querySelector('.navbar .nav-pills'),
+                    intro: "<p>You can view capsules that are expired, i.e. that are no longer displayed because we are outside their validity period.</p><p>You can also list all capsules in a table.</p>"
+                },
+                {
+                    element: document.querySelector('#button-create-capsule'),
+                    intro: "Create a new capsule to continue the tour."
+                },
+                {
+                    element: document.querySelector('.tab-pane.active .box-capsule'),
+                    intro: "Open the created capsule.",
+                    position: 'auto'
+                }
+            ]
+        });
+    });
+</script>

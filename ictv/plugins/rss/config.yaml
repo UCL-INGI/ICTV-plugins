@@ -1,0 +1,48 @@
+plugin:
+  webapp: yes
+  static: yes
+  dependencies:
+    - feedparser
+  description: "The RSS plugin is a powerful toolbox to parse file and extract slides from its content."
+channels_params:
+  url:
+    name: 'Path to the file to parse'
+    placeholder: 'URL'
+    type: string
+    default: ''
+  template:
+    name: 'Template to apply'
+    type: template
+    default: ~
+  parser_rules:
+    name: 'Rules for the parser'
+    placeholder: 'A rule in the form field:input_type;entry_item;regexp e.g: title-1:text;title_detail.value;(.*)'
+    type: list[string]
+    default: ['']
+    add: 'Add rule'
+  additional_rules:
+    name: 'Additional static rules'
+    placeholder: 'A static rule in the form field:input_type;entry_item;string e.g: title-1:text;title_detail.value;News'
+    type: list[string]
+    default: ['']
+    add: 'Add static rule'
+  no_slides:
+    name: 'Number of slides to extract'
+    placeholder: ''
+    type: int
+    default: 5
+  time_limit:
+    name: 'Show slides that are extract from the last X days'
+    placeholder: ''
+    type: int
+    default: 5
+  duration:
+    name: 'Slide duration in seconds'
+    placeholder: 'Slide duration in seconds'
+    type: int
+    default: 10
+  theme:
+    name: 'Theme to apply'
+    placeholder: 'Theme name'
+    type: string
+    default: ''
