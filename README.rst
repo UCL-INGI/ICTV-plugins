@@ -16,6 +16,7 @@ Installation
 The plugins can easily be installed using pip:
 
 ::
+
     pip3 install --upgrade git+https://github.com/UCL-INGI/ICTV-plugins.git
 
 Documentation
