@@ -312,10 +312,10 @@ class Edit(EditorPage):
         PluginManager.dereference_assets([capsule])
         capsule_theme = capsule.get_theme() if capsule.get_theme() in Themes else self.app.config['default_theme']
         content = Themes.get_slide_defaults(capsule_theme)
-        deep_update(content, plugin_s.get_content())
+        deep_update(content, s.get_content())
         vertical = channel.get_config_param('vertical')
         templates = self.slide_templates
-        template = channel.get_config_param('default_template')
+        template = s.get_template()
         if vertical:
             templates = {'template-image-bg': templates['template-image-bg'],
                          'template-background-text-center': self.slide_templates['template-background-text-center']}
