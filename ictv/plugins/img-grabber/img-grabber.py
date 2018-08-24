@@ -19,7 +19,7 @@
 #    You should have received a copy of the GNU Affero General Public License
 #    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
 
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from pyquery import PyQuery
 
@@ -49,8 +49,7 @@ def get_content(channel_id):
     if not img:
         message = 'Could not find img with CSS selector %s and attribute %s' % (image_selector, attr)
         raise MisconfiguredParameters('image_selector', image_selector, message).add_faulty_parameter('src_attr', attr, message)
-    if img[:4] != 'http' and img[:4] != 'ftp:':
-        img = '{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(url)) + img
+    img = urljoin(url, img)
     duration = channel.get_config_param('duration') * 1000
     text = doc(channel.get_config_param('text_selector')).eq(0).text()
     alternative_text = channel.get_config_param('alternative_text')
