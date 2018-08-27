@@ -59,7 +59,7 @@ def get_content(channel_id):
 
 class ImgGrabberCapsule(PluginCapsule):
     def __init__(self, img_src, text, duration, color, qrcode=None):
-        self._slides = [ImgGrabberSlide(img_src, text, duration, color, qrcode)]
+        self._slides = [ImgGrabberSlide(img_src, text.strip(), duration, color, qrcode)]
 
     def get_slides(self):
         return self._slides
@@ -74,9 +74,11 @@ class ImgGrabberCapsule(PluginCapsule):
 class ImgGrabberSlide(PluginSlide):
     def __init__(self, img_src, text, duration, color, qrcode):
         self._duration = duration
-        self._content = {'background-1': {'src': img_src, 'size': 'contain', 'color': color}, 'text-1': {'text': text}}
+        self._content = {'background-1': {'src': img_src, 'size': 'contain', 'color': color}}
         if qrcode:
             self._content['image-1'] = {'qrcode': qrcode}
+        if text:
+            self._content['text-1'] = {'text': text}
         self._has_qr_code = qrcode is not None
 
     def get_duration(self):
