@@ -53,12 +53,13 @@ def get_content(channel_id):
     duration = channel.get_config_param('duration') * 1000
     text = doc(channel.get_config_param('text_selector')).eq(0).text()
     alternative_text = channel.get_config_param('alternative_text')
-    return [ImgGrabberCapsule(img, text if text else alternative_text, duration, qrcode=url if qrcode else None)]
+    color = channel.get_config_param('color')
+    return [ImgGrabberCapsule(img, text if text else alternative_text, duration, color, qrcode=url if qrcode else None)]
 
 
 class ImgGrabberCapsule(PluginCapsule):
-    def __init__(self, img_src, text, duration, qrcode=None):
-        self._slides = [ImgGrabberSlide(img_src, text, duration, qrcode)]
+    def __init__(self, img_src, text, duration, color, qrcode=None):
+        self._slides = [ImgGrabberSlide(img_src, text, duration, color, qrcode)]
 
     def get_slides(self):
         return self._slides
@@ -71,9 +72,9 @@ class ImgGrabberCapsule(PluginCapsule):
 
 
 class ImgGrabberSlide(PluginSlide):
-    def __init__(self, img_src, text, duration, qrcode):
+    def __init__(self, img_src, text, duration, color, qrcode):
         self._duration = duration
-        self._content = {'background-1': {'src': img_src, 'size': 'contain'}, 'text-1': {'text': text}}
+        self._content = {'background-1': {'src': img_src, 'size': 'contain', 'color': color}, 'text-1': {'text': text}}
         if qrcode:
             self._content['image-1'] = {'qrcode': qrcode}
         self._has_qr_code = qrcode is not None

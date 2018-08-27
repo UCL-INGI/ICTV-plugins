@@ -31,6 +31,11 @@ channels_params:
     placeholder: 'Plain text'
     type: string
     default: ''
+  color:
+    name: 'HTML background color'
+    placeholder: 'An HTML color, e.g. white or #abcdef'
+    type: string
+    default: 'black'
   duration:
     name: 'Slide duration in seconds'
     placeholder: 'Slide duration in seconds'
