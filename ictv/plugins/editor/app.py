@@ -59,7 +59,11 @@ def get_app(ictv_app):
         'edit/(\d+)', 'ictv.plugins.editor.app.Edit',
         'preview/expired', 'ictv.plugins.editor.rendering_pages.RenderExpired',
         'preview/currentandfuture', 'ictv.plugins.editor.rendering_pages.RenderCurrentAndFuture',
-        'render/(\d+)/(\d+)?/?(.*)', 'ictv.plugins.editor.app.LocalSlideRender'
+        'render/(\d+)/(\d+)?/?(.*)', 'ictv.plugins.editor.app.LocalSlideRender',
+        'api/capsules', 'ictv.plugins.editor.api.APIIndex',
+        'api/capsules/(\d+)', 'ictv.plugins.editor.api.APICapsules',
+        'api/capsules/(\d+)/slides', 'ictv.plugins.editor.api.APIIndexSlides',
+        'api/capsules/(\d+)/slides/(\d+)', 'ictv.plugins.editor.api.APISlides',
     )
 
     app = web.application(urls, globals())

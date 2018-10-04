@@ -41,13 +41,15 @@ from ictv.models.plugin import Plugin
 from ictv.models.user import User
 from ictv.plugin_manager.plugin_capsule import PluginCapsule
 from ictv.plugin_manager.plugin_slide import PluginSlide
-from ictv.plugin_manager.plugin_utils import SQLObjectAndABCMeta, VideoSlide
+from ictv.plugin_manager.plugin_utils import SQLObjectAndABCMeta, VideoSlide, MisconfiguredParameters
 from ictv.storage.cache_manager import CacheManager
 
 
 def get_content(channelid, capsuleid=None) -> Iterable[PluginCapsule]:
     content = []
     channel = PluginChannel.get(channelid)
+    if 0 < len(channel.get_config_param('api_key')) < 8:
+        raise MisconfiguredParameters('api_key', channel.get_config_param('api_key'), "The key must be at least 8-character long")
     if capsuleid is None:
         now = datetime.now()
         capsules = EditorCapsule.selectBy(channel=channelid).filter(
@@ -216,13 +218,21 @@ class EditorSlide(SQLObject, PluginSlide, metaclass=SQLObjectAndABCMeta):
                 return True
         return False
 
+    def to_json_api(self):
+        return {
+            'id': self.id,
+            'duration': self.duration,
+            'content': self.content,
+            'template': self.template,
+        }
+
 
 class EditorCapsule(SQLObject, PluginCapsule, metaclass=SQLObjectAndABCMeta):
     name = StringCol()
-    owner = ForeignKey('User', cascade='null')
+    owner = ForeignKey('User', cascade='null', default=None)
     channel = ForeignKey('PluginChannel', cascade=True)
     capsule_id = DatabaseIndex('name', 'channel', unique=True)
-    creation_date = DateTimeCol(notNone=True)
+    creation_date = DateTimeCol(notNone=True, default=lambda: datetime.now())
     slides = SQLMultipleJoin('EditorSlide', joinColumn='capsule_id')
     theme = StringCol(default=lambda: web.ctx.app_stack[0].config['default_theme'])
     c_order = IntCol(notNone=True)
@@ -297,6 +307,15 @@ class EditorCapsule(SQLObject, PluginCapsule, metaclass=SQLObjectAndABCMeta):
         for slide in self.slides:
             EditorSlide.from_slide(slide=slide, capsule=duplicate)
         return duplicate
+
+    def to_json_api(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'slides': [s.to_json_api() for s in self.slides],
+            'validity': [int(self.validity_from.timestamp()), int(self.validity_to.timestamp())],
+            'theme': self.theme,
+        }
 
 
 def install():

@@ -26,6 +26,16 @@ channels_params:
     name: 'Default template when creating a slide'
     type: template
     default: template-text-image
+  enable_rest_api:
+    name: 'Enable the REST API'
+    type: bool
+    default: false
+  api_key:
+    name: 'API key'
+    type: string
+    placeholder: 'A secure key longer than 8 characters'
+    default: ''
+    optional: yes
   ban_templates_list:
     name: 'Ban templates from editor'
     type: template_list
