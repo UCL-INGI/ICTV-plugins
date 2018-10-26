@@ -48,7 +48,7 @@ from ictv.storage.cache_manager import CacheManager
 def get_content(channelid, capsuleid=None) -> Iterable[PluginCapsule]:
     content = []
     channel = PluginChannel.get(channelid)
-    if 0 < len(channel.get_config_param('api_key')) < 8:
+    if 0 < len(channel.get_config_param('api_key') or '') < 8:
         raise MisconfiguredParameters('api_key', channel.get_config_param('api_key'), "The key must be at least 8-character long")
     if capsuleid is None:
         now = datetime.now()
