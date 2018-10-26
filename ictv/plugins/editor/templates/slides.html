@@ -184,7 +184,7 @@ $def create_alert(title, message, icon):
                         </div>
                     <div class="form-group">
                         <label for="owner">Capsule owner</label>
-                        <input id="owner" class="form-control" value="$capsule.owner.fullname" type="text" disabled>
+                        <input id="owner" class="form-control" value="$(capsule.owner.fullname if capsule.owner else 'Editor API')" type="text" disabled>
                     </div>
                     <form action="" id="form-edit" method="post">
                         <input name="action" value="edit" type="hidden">

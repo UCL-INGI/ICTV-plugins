@@ -263,7 +263,7 @@ $def create_alert(title, message, icon):
                                     data-caps-from="$caps.validity_from.replace(microsecond=0).isoformat()"
                                     data-caps-to="$caps.validity_to.replace(microsecond=0).isoformat()">
                                     <td>$caps.name</td>
-                                    <td>$caps.owner.fullname</td>
+                                    <td>$(caps.owner.fullname if caps.owner else 'Editor API')</td>
                                     <td>$caps.validity_from.replace(microsecond=0).isoformat(' ')</td>
                                     <td>$caps.validity_to.replace(microsecond=0).isoformat(' ')</td>
                                     <td>$caps.theme</td>
