@@ -64,6 +64,7 @@ def get_app(ictv_app):
         'api/capsules/(\d+)', 'ictv.plugins.editor.api.APICapsules',
         'api/capsules/(\d+)/slides', 'ictv.plugins.editor.api.APIIndexSlides',
         'api/capsules/(\d+)/slides/(\d+)', 'ictv.plugins.editor.api.APISlides',
+        'api/templates', 'ictv.plugins.editor.api.APITemplates',
     )
 
     app = web.application(urls, globals())

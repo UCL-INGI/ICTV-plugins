@@ -11,6 +11,7 @@ from ictv.models.channel import PluginChannel
 from ictv.pages.utils import ICTVPage
 from ictv.plugins.editor.editor import EditorCapsule, EditorSlide
 
+from ictv.renderer.renderer import Templates
 
 class EditorAPIPage(ICTVPage):
     def authenticate(self):
@@ -71,6 +72,11 @@ class EditorAPIPage(ICTVPage):
 
     def DELETE_AUTH(self, *args, **kwargs):
         raise web.nomethod()
+
+
+class APITemplates(EditorAPIPage):
+    def GET_AUTH(self, channel):
+        return Templates._templates
 
 
 class APIIndex(EditorAPIPage):
