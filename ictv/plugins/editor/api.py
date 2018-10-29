@@ -76,7 +76,7 @@ class EditorAPIPage(ICTVPage):
 
 class APITemplates(EditorAPIPage):
     def GET_AUTH(self, channel):
-        return Templates._templates
+        return {k: Templates[k] for k in Templates}
 
 
 class APIIndex(EditorAPIPage):
