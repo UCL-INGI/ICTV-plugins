@@ -61,7 +61,9 @@ def get_content(channel_id, config=None):
 
     url = get_param('url')
     parser_rules = get_param('parser_rules')  # A list of rules in the form slide_element;entry_item;regexp
-    additional_rules = get_param('additional_rules')  # A list of rules in the form slide_element;entry_item;string
+    additional_rules = get_param('additional_rules')  # A list of rules in the form entry_item;string
+    filter = get_param('filter')
+    exception_rules = get_param('exception_rules')  # A list of rules in the form entry_item;string
     no_slides = get_param('no_slides')
     time_limit = get_param('time_limit')
     duration = get_param('duration') * 1000
@@ -124,12 +126,31 @@ def get_content(channel_id, config=None):
             field, input_type = slide_element.split(':')
             if field not in slide_content:
                 slide_content[field] = {}
-            if string == 'QRCODE' or string == 'qrcode':
+            if string.lower() == 'qrcode':
                 input_type = 'qrcode'
                 string = entry.link
             slide_content[field].update({input_type: string})
 
-        capsules.append(RssCapsule(theme=theme, slides=[RssSlide(content=slide_content, template=template, duration=duration)]))
+        if len(exception_rules) == 1 and not exception_rules[0].strip():
+            capsules.append(RssCapsule(theme=theme, slides=[RssSlide(content=slide_content, template=template, duration=duration)]))
+        else:
+            for entry_item, regexp in [rule.split(';') for rule in exception_rules]:
+                if entry_item == 'link_page':
+                    if not link_page:
+                        with urllib.request.urlopen(entry.link) as response:
+                            link_page = response.read().decode(errors='ignore')
+                            entry_item += "@" + response.geturl() # in case of redirect(s), geturl() returns the final url of the page
+                    item = link_page
+                else:
+                    item = deep_get(entry, *entry_item.split('.'))
+
+                value = get_value(item, regexp)
+
+                if filter and value is None:
+                    capsules.append(RssCapsule(theme=theme, slides=[RssSlide(content=slide_content, template=template, duration=duration)]))
+
+                if not filter and value is not None:
+                    capsules.append(RssCapsule(theme=theme, slides=[RssSlide(content=slide_content, template=template, duration=duration)]))
 
     return capsules
 

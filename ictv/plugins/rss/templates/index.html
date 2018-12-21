@@ -113,6 +113,8 @@ $#    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
             } else {
                 if (e.getAttribute('type') == 'number') {
                     config[name] = parseInt(e.value);
+                } else if (e.getAttribute('type') == 'checkbox') {
+                    config[name] = e.checked;
                 } else {
                     config[name] = e.value;
                 }

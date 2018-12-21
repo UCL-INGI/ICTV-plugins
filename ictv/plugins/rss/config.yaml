@@ -16,16 +16,26 @@ channels_params:
     default: ~
   parser_rules:
     name: 'Rules for the parser'
-    placeholder: 'A rule in the form field:input_type;entry_item;regexp e.g: title-1:text;title_detail.value;(.*)'
+    placeholder: 'A rule in the form field:input_type;entry_item;regexp e.g.: title-1:text;title_detail.value;(.*)'
     type: list[string]
     default: ['']
     add: 'Add rule'
   additional_rules:
     name: 'Additional static rules'
-    placeholder: 'A static rule in the form field:input_type;entry_item;string e.g: title-1:text;title_detail.value;News'
+    placeholder: 'A static rule in the form field:input_type;string e.g.: title-1:text;News'
     type: list[string]
     default: ['']
     add: 'Add static rule'
+  filter:
+    name: 'If checked, the slides matching the exception rules are filtered out. Otherwise, only the slides matching are kept.'
+    type: bool
+    default: no
+  exception_rules:
+    name: 'Exception rules'
+    placeholder: 'A rule in the form entry_item;regexp e.g.: title_detail.value;(News)'
+    type: list[string]
+    default: ['']
+    add: 'Add exclude rule'
   no_slides:
     name: 'Number of slides to extract'
     placeholder: ''
