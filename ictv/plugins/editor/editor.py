@@ -228,7 +228,7 @@ class EditorSlide(SQLObject, PluginSlide, metaclass=SQLObjectAndABCMeta):
 
 
 class EditorCapsule(SQLObject, PluginCapsule, metaclass=SQLObjectAndABCMeta):
-    name = StringCol()
+    name = StringCol(length=100)
     owner = ForeignKey('User', cascade='null', default=None)
     channel = ForeignKey('PluginChannel', cascade=True)
     capsule_id = DatabaseIndex('name', 'channel', unique=True)
