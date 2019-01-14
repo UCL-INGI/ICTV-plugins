@@ -10,7 +10,6 @@
 htmlcov
 doc/_build
 doc/_static
-ictv/plugins/embed/static
 ictv/plugins/embed/static/*.html
 ictv/plugins/rss_legacy/static
 ictv/plugins/rss/cache.json
