@@ -1,56 +1,59 @@
-$def with (capsule, channel, slide, templates, template, old_content, theme, theme_palette, themes, theme_defaults, vertical)
+{#
+    This file belongs to the ICTV project, written by Nicolas Detienne,
+    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
+    at Universite Catholique de Louvain.
 
-$#    This file belongs to the ICTV project, written by Nicolas Detienne,
-$#    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
-$#    at Universite Catholique de Louvain.
-$#
-$#    Copyright (C) 2017  Universite Catholique de Louvain (UCL, Belgium)
-$#
-$#    ICTV is free software: you can redistribute it and/or modify
-$#    it under the terms of the GNU Affero General Public License as published
-$#    by the Free Software Foundation, either version 3 of the License, or
-$#    (at your option) any later version.
-$#
-$#    ICTV is dembed-responsive-9by16istributed in the hope that it will be useful,
-$#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-$#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-$#    GNU Affero General Public License for more details.
-$#
-$#    You should have received a copy of the GNU Affero General Public License
-$#    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+    Copyright (C) 2017  Universite Catholique de Louvain (UCL, Belgium)
 
-$ ntemplates_per_row_carousel = 4
+    ICTV is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    $def carousel():
+    ICTV is dembed-responsive-9by16istributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+#}
+
+{% set ntemplates_per_row_carousel = 4 %}
+{% extends "%s" % base %}
+
+{% block content %}
+    {% macro carousel() %}
         <div class="row">
-            <div class="$('col-md-12' if not vertical else 'col-md-12')">
+            <div class="{{('col-md-12' if not vertical else 'col-md-12')}}">
                 <div id="myCarousel" data-interval="false" class="carousel slide" data-ride="carousel">
                     <ol class="carousel-indicators">
-                        $for r in range(0, len(templates), ntemplates_per_row_carousel):
-                            $if loop.first:
+                        {% for r in range(0, (templates | length), ntemplates_per_row_carousel) %}
+                            {% if loop.first %}
                                 <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
-                            $else:
-                                <li data-target="#myCarousel" data-slide-to="$loop.index"></li>
+                            {% else %}
+                                <li data-target="#myCarousel" data-slide-to="{{loop.index}}"></li>
+                            {% endif %}
+                        {% endfor %}
                     </ol>
 
                     <div class="carousel-inner" role="listbox">
                         <div class="item active">
                             <div class="row">
-                                $ i = 1
-                                $for template_id, template_attrs in list(templates.items()):
-                                    $code:
-                                        template_imgs = template_attrs['themes']
-                                        template_name = template_attrs['name']
-                                        template_description = template_attrs['description']
-                                    $if template_imgs:
+                                {% set  i = 1 %}
+                                {% for template_id, template_attrs in (templates.items() | list) %}
+                                    {% set template_imgs = template_attrs['themes'] %}
+                                    {% set template_name = template_attrs['name'] %}
+                                    {% set template_description = template_attrs['description'] %}
+                                    {% if template_imgs %}
                                         <div class="col-md-3">
-                                            <a templ-filename="$template_id" class="thumbnail thumbtemp embed-responsive embed-responsive-16by9">
-                                                $code:
-                                                    if slide:
-                                                        path = '/channels/%d/render/%d/%d/%s' % (channel.id, capsule.id, slide.id, template_id)
-                                                    else:
-                                                        path = '/channels/%d/render/%d/%s' % (channel.id, capsule.id, template_id)
-                                                <iframe src="$path"
+                                            <a templ-filename="{{template_id}}" class="thumbnail thumbtemp embed-responsive embed-responsive-16by9">
+                                                {% if slide %}
+                                                    {% set path = '/channels/%d/render/%d/%d/%s' % (channel.id, capsule.id, slide.id, template_id) %}
+                                                {% else %}
+                                                    {% set path = '/channels/%d/render/%d/%s' % (channel.id, capsule.id, template_id) %}
+                                                {% endif %}
+                                                <iframe src="{{path}}"
                                                         height="900"
                                                         width="1600" frameborder="0" marginwidth="0"
                                                         marginheight="0"></iframe>
@@ -62,27 +65,31 @@ $ ntemplates_per_row_carousel = 4
                                                                     height: 100%;
                                                                     margin: 0;">
                                                     <div style="text-align: center; color: white;">
-                                                        <h4 style="margin-bottom: 2px;"><span class="template-notice">$template_name</span></h4>
-                                                        <h6 style="margin-top: 0;"><span class="template-notice">$template_description</span></h6>
+                                                        <h4 style="margin-bottom: 2px;"><span class="template-notice">{{template_name}}</span></h4>
+                                                        <h6 style="margin-top: 0;"><span class="template-notice">{{template_description}}</span></h6>
                                                     </div>
                                                 </div>
                                             </a>
                                         </div>
-                                        $if loop.last:
+                                        {% if loop.last %}
                                             </div>
                                             </div>
-                                        $if i % ntemplates_per_row_carousel == 0:
+                                        {% endif %}
+                                        {% if i % ntemplates_per_row_carousel == 0 %}
                                             </div>
                                             </div>
                                             <div class="item">
                                             <div class="row">
-                                        $ i = i + 1
-                                    $elif loop.last:
+                                        {% endif %}
+                                        {% set  i = i + 1 %}
+                                    {% elif loop.last %}
                                         </div>
                                         </div>
+                                    {% endif %}
+                              {%endfor%}
                 </div>
             </div>
-            $if len(templates) > ntemplates_per_row_carousel:
+            {% if (templates | length) > ntemplates_per_row_carousel %}
                 <!-- Left and right controls -->
                 <a class="left carousel-control" href="#myCarousel" role="button" data-slide="prev">
                     <span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span>
@@ -92,9 +99,10 @@ $ ntemplates_per_row_carousel = 4
                     <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span>
                     <span class="sr-only">Next</span>
                 </a>
+            {% endif %}
         </div>
         </div>
-
+    {% endmacro %}
 
 
     <link rel="stylesheet" href="/static/plugins/editor/css/jquery-ui.min.css">
@@ -159,15 +167,15 @@ $ ntemplates_per_row_carousel = 4
 <section class="content-header">
     <h1>
         Slide editor
-        <small>Edit a slide in capsule <b><i>$(capsule.name)</i></b></small>
-        <button type="button" style="margin-top: -8px" class="btn btn-primary pull-right" onclick="$$('#tour-started').submit();">
+        <small>Edit a slide in capsule <b><i>{{(capsule.name)}}</i></b></small>
+        <button type="button" style="margin-top: -8px" class="btn btn-primary pull-right" onclick="$('#tour-started').submit();">
             <i class="fa fa-2x fa-question-circle" style="max-height: 20px; position: relative; left: 3px; bottom: 4px;"></i>
         </button>
     </h1>
 </section>
 <section class="fill65 content">
     <div class="row fill">
-        <div class="$('col-md-5' if not vertical else 'col-md-8')" style="height: 100%;">
+        <div class="{{('col-md-5' if not vertical else 'col-md-8')}}" style="height: 100%;">
             <div class="row">
                 <div class="box fill" style="overflow-y:scroll;">
                     <div class="box-body">
@@ -176,21 +184,23 @@ $ ntemplates_per_row_carousel = 4
                     </div>
                 </div>
             </div>
-            $if vertical:
-                $:carousel()
+            {% if vertical %}
+                {{ carousel() |safe }}
+            {% endif %}
         </div>
-        <div class="$('col-md-7' if not vertical else 'col-md-4')">
+        <div class="{{('col-md-7' if not vertical else 'col-md-4')}}">
             <div class="box">
                 <div class="box-body">
-                    <div class="embed-responsive $('embed-responsive-16by9' if not vertical else 'embed-responsive-9by16')">
+                    <div class="embed-responsive {{('embed-responsive-16by9' if not vertical else 'embed-responsive-9by16')}}">
                         <iframe id="iframe" class="embed-responsive-item" frameborder="0" src="/static/plugins/editor/preview.html"></iframe>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-$if not vertical:
-    $:carousel()
+{% if not vertical %}
+    {{ carousel() | safe }}
+{% endif %}
 </section>
 
 <div class="modal fade" id="limit-modal" tabindex="-1" role="dialog">
@@ -221,32 +231,32 @@ $if not vertical:
     var buckets = {};
     var inserts = {};
     Reveal = null;
-    template = '$:template';
-    theme_defaults = $:theme_defaults;
-    $$(document).ready(function () {
-        $$('#iframe').load(loadEditor);
-        $$('#myCarousel').carousel({});
+    template = '{{template|safe}}';
+    theme_defaults = {{theme_defaults | safe}};
+    $(document).ready(function () {
+        $('#iframe').load(loadEditor);
+        $('#myCarousel').carousel({});
 
-        $$('.thumbtemp').click(function(){
+        $('.thumbtemp').click(function(){
             template = this.getAttribute('templ-filename');
-            $$fields = $$('#iframe').contents().find('[data-editor-type]');
-            $$fields.each(function(i, e){
+            $fields = $('#iframe').contents().find('[data-editor-type]');
+            $fields.each(function(i, e){
                 var type = e.getAttribute('data-editor-type');
                 previous_content[e.id] = {"type": type, "value": getValueOf(e, type)};
             });
-            $$('#form').html('');
+            $('#form').html('');
             loadEditor();
         });
-        jQuery(function($$) {
-        var panelList = $$('#draggablePanelList');
+        jQuery(function($) {
+        var panelList = $('#draggablePanelList');
 
         panelList.sortable({
             // Only make the .panel-heading child elements support dragging.
             // Omit this to make then entire <li>...</li> draggable.
             update: function() {
-                $$('.panel', panelList).each(function(index, elem) {
-                     var $$listItem = $$(elem),
-                         newIndex = $$listItem.index();
+                $('.panel', panelList).each(function(index, elem) {
+                     var $listItem = $(elem),
+                         newIndex = $listItem.index();
 
                      // Persist the new indices.
                 });
@@ -257,18 +267,19 @@ $if not vertical:
     });
 
     function loadEditor() {
-        iframe = $$('#iframe').contents();
-        $# TODO: Themes resolution should be done outside editor
-        $for theme in themes:
-            iframe.find('head').append('<link rel="stylesheet" href="/static/themes/$theme/theme.css" type="text/css" />');
+        iframe = $('#iframe').contents();
+        {# TODO: Themes resolution should be done outside editor #}
+        {% for theme in themes %}
+            iframe.find('head').append('<link rel="stylesheet" href="/static/themes/{{theme}}/theme.css" type="text/css" />');
+        {% endfor %}
         iframeWindow = document.getElementById('iframe').contentWindow;
         Reveal = iframeWindow.Reveal;
-        var $$slides = iframe.find('.slides');
-        $$slides.load("/channels/$(channel.id)/template/$(capsule.id)/" + template + " section", function (data, code) {
+        var $slides = iframe.find('.slides');
+        $slides.load("/channels/{{(channel.id)}}/template/{{(capsule.id)}}/" + template + " section", function (data, code) {
             if (code == "success") {
-                var $$slide = $$slides.find('section');
-                var $$fields = $$slide.find('[data-editor-default]');
-                $$fields.each(function (i, e) {
+                var $slide = $slides.find('section');
+                var $fields = $slide.find('[data-editor-default]');
+                $fields.each(function (i, e) {
                     var type = e.getAttribute("data-editor-type");
                     if(type != "image" && previous_content && previous_content[e.id]) {
                         var previous_content_of_e = previous_content[e.id];
@@ -286,18 +297,19 @@ $if not vertical:
                     previous_content = {};
                 }
 
-                $if vertical:
+                {% if vertical %}
                     initPortrait();
-                $else:
+                {% else %}
                     init();
+                {% endif %}
 
-                $$fields = $$slide.find('[data-editor-type]');
-                $$fields.add($$slide);
+                $fields = $slide.find('[data-editor-type]');
+                $fields.add($slide);
                 var formElements = [];
                 var textAreas = [];
                 var maxAllowedChars = {};
                 var respectsCharsLimits = {};
-                $$fields.each(function (i, e) {
+                $fields.each(function (i, e) {
                     var type = e.getAttribute("data-editor-type");
                     var id = e.getAttribute("id");
                     var placeholder = e.getAttribute("data-editor-placeholder");
@@ -329,39 +341,40 @@ $if not vertical:
                      background = old_content['background-1'];
                 }
                 if(!background) {
-                    background = makeDefaultValue($$slide[0], 'background');
+                    background = makeDefaultValue($slide[0], 'background');
                 }
-                var placeholder = $$slide.attr('data-editor-placeholder');
-                var label = $$slide.attr('data-editor-label');
+                var placeholder = $slide.attr('data-editor-placeholder');
+                var label = $slide.attr('data-editor-label');
 
                 // if there is a background for the slide
                 if(background.src && background.size && placeholder && label){
-                    setValue($$slide[0], 'background', background);
+                    setValue($slide[0], 'background', background);
                     formElements.push(makeFormElement('background', placeholder, label, 'background-1', background))
                 } else {
-                    $$slide[0].removeAttribute('data-background-image');
-                    $$slide[0].removeAttribute('data-background-size');
-                    $$slide[0].removeAttribute('data-background-color');
+                    $slide[0].removeAttribute('data-background-image');
+                    $slide[0].removeAttribute('data-background-size');
+                    $slide[0].removeAttribute('data-background-color');
                 }
 
                 formElements.push('<div class="form-group">'+
                                         '<input type="hidden" value="'+template+'" name="template" class="form-control" id="templatetouse" required>' +
                         '</div>');
                 formElements.push('<div class="form-group">'+
-                                        '<input type="hidden" value="$('create' if slide is None else 'edit')" name="action" class="form-control" id="actiontodo" required>' +
+                                        '<input type="hidden" value="{{('create' if not slide else 'edit')}}" name="action" class="form-control" id="actiontodo" required>' +
                                   '</div>');
                 formElements.push('<button type="submit" class="btn btn-primary">Submit</button>');
 
 
-                var $$form = $$('#form').append(formElements);
+                var $form = $('#form').append(formElements);
                 textAreas.forEach(function(currentID){
                     CKEDITOR.replace(currentID, {
                         enterMode: CKEDITOR.ENTER_BR,
                         title: false,
-                        $if theme_palette:
-                            colorButton_colors: '$:theme_palette',
+                        {% if theme_palette %}
+                            colorButton_colors: '{{theme_palette|safe}}',
                             colorButton_enableMore: false,
                             extraPlugins: 'colorbutton',
+                        {% endif %}
                     });
 
                     buckets[currentID] = 1;
@@ -372,8 +385,8 @@ $if not vertical:
                         if(buckets[currentID] > 0){
                             buckets[currentID]--;
                             var editorData = currentEditor.getData();
-                            insertInPreview($$slide, currentID, editorData);
-                            setTimeout(fillbucket, EDITOR_TIMEOUT, $$slide, currentID, currentEditor);
+                            insertInPreview($slide, currentID, editorData);
+                            setTimeout(fillbucket, EDITOR_TIMEOUT, $slide, currentID, currentEditor);
 
                             updateMaxCharsAlert(editorData);
                         }
@@ -383,14 +396,14 @@ $if not vertical:
                     });
 
                     function updateMaxCharsAlert(editorData) {
-                        var currentChars = $$('<div>').append(editorData).text().length;
+                        var currentChars = $('<div>').append(editorData).text().length;
                         var maxChars = maxAllowedChars[currentID];
-                        var $$inputChars = $$form.find('#' + currentID + '-chars');
-                        $$inputChars.html(currentChars + '/' + maxChars + ' max chars.');
+                        var $inputChars = $form.find('#' + currentID + '-chars');
+                        $inputChars.html(currentChars + '/' + maxChars + ' max chars.');
                         if (currentChars > maxChars) {
-                            $$inputChars.addClass('text-danger').addClass('text-bold');
+                            $inputChars.addClass('text-danger').addClass('text-bold');
                         } else {
-                            $$inputChars.removeClass('text-bold').removeClass('text-danger');
+                            $inputChars.removeClass('text-bold').removeClass('text-danger');
                         }
                         respectsCharsLimits[currentID] = currentChars <= maxChars;
                     }
@@ -398,75 +411,75 @@ $if not vertical:
                     updateMaxCharsAlert(CKEDITOR.instances[currentID].getData());
                 });
 
-                $$('#loading-wrapper').hide();
+                $('#loading-wrapper').hide();
 
-                $$form.find('input[type="text"]').on('input', function (e) {
+                $form.find('input[type="text"]').on('input', function (e) {
                     var val = getValue(this);
-                    $$slide.find('#' + this.getAttribute('id')).html(val);
+                    $slide.find('#' + this.getAttribute('id')).html(val);
                     render();
                 });
                 function updateMaxCharsAlert() {
                     var val = getValue(this);
                     var currentChars = val.length;
                     var maxChars = maxAllowedChars[this.getAttribute('id')];
-                    var $$inputChars = $$form.find('#' + this.getAttribute('id')+'-chars');
-                    $$inputChars.html(currentChars + '/' + maxChars + ' max chars.');
+                    var $inputChars = $form.find('#' + this.getAttribute('id')+'-chars');
+                    $inputChars.html(currentChars + '/' + maxChars + ' max chars.');
                     if(currentChars > maxChars) {
-                        $$inputChars.addClass('text-danger').addClass('text-bold');
+                        $inputChars.addClass('text-danger').addClass('text-bold');
                     } else {
-                        $$inputChars.removeClass('text-bold').removeClass('text-danger');
+                        $inputChars.removeClass('text-bold').removeClass('text-danger');
                     }
                     respectsCharsLimits[this.getAttribute('id')] = currentChars <= maxChars;
                 }
 
-                $$form.find('input.char-limited[type="text"]').on('input', function (e) {
+                $form.find('input.char-limited[type="text"]').on('input', function (e) {
                     updateMaxCharsAlert.bind(this)()
                 });
-                $$form.find('input.char-limited[type="text"]').each(updateMaxCharsAlert);
-                $$form.find('[data-editor-mediatype="image"]').change(function (e) {
+                $form.find('input.char-limited[type="text"]').each(updateMaxCharsAlert);
+                $form.find('[data-editor-mediatype="image"]').change(function (e) {
                     var self = this;
-                    var file = $$(this)[0].files[0];
+                    var file = $(this)[0].files[0];
                     if(file) {
                         var reader = new FileReader();
 
                         reader.addEventListener("load", function () {
                             if (self.getAttribute('background') == "false") {
-                                $$slide.find('#' + self.getAttribute('id')).attr('src', reader.result);
+                                $slide.find('#' + self.getAttribute('id')).attr('src', reader.result);
                             }
                             else {
-                                $$slide.attr('data-background-image', reader.result);
+                                $slide.attr('data-background-image', reader.result);
                             }
                             render();
                         });
 
                         if (file) {
-                            $$form.find('#filename-' + self.getAttribute('id')).attr('value', file.name);
+                            $form.find('#filename-' + self.getAttribute('id')).attr('value', file.name);
                             reader.readAsDataURL(file);
                         }
                     } else {
                         var id = self.getAttribute('id');
-                        var src = $$form.find('#filename-' + id).val() || null;
+                        var src = $form.find('#filename-' + id).val() || null;
                         if (self.getAttribute('background') == "false") {
-                            $$slide.find('#' + self.getAttribute('id')).attr('src', src);
+                            $slide.find('#' + self.getAttribute('id')).attr('src', src);
                         }
                         else {
-                            $$slide.attr('data-background-image', src);
+                            $slide.attr('data-background-image', src);
                         }
                     }
                 });
-                $$form.find('input[name="background-1-cover"]').on('change', function() {
-                    $$slide.attr('data-background-size', this.checked? "cover" : "contain");
+                $form.find('input[name="background-1-cover"]').on('change', function() {
+                    $slide.attr('data-background-size', this.checked? "cover" : "contain");
                     render();
                 });
-                $$form.find('input[name="background-1-color"]').on('change', function() {
-                    $$slide.attr('data-background-color', this.checked? "white" : "black");
+                $form.find('input[name="background-1-color"]').on('change', function() {
+                    $slide.attr('data-background-color', this.checked? "white" : "black");
                     render();
                 });
                 iframe.waitForImages(function(){
                     render();
                 });
-                $$form.off('submit');
-                $$form.submit(function () {
+                $form.off('submit');
+                $form.submit(function () {
                     var respectsAllLimits = true;
                     for (var id in respectsCharsLimits) {
                         if(!respectsCharsLimits[id]) {
@@ -475,31 +488,32 @@ $if not vertical:
                         }
                     }
                     if(!respectsAllLimits) {
-                        $$('#limit-modal').modal('show');
+                        $('#limit-modal').modal('show');
                     }
                     return respectsAllLimits
                 });
-                $$form.on('mouseenter mouseleave', 'input, .form-group > .cke', function(e) {
+                $form.on('mouseenter mouseleave', 'input, .form-group > .cke', function(e) {
                     var id = this.getAttribute('id');
                     if(id.startsWith('cke_')) {
                         id = id.replace('cke_', '');
                     }
-                    var $$element = $$slide.find('#' + id);
-                    $$element.css({'transition' : 'box-shadow 1s ease'});
+                    var $element = $slide.find('#' + id);
+                    $element.css({'transition' : 'box-shadow 1s ease'});
                     if(e.type == 'mouseenter') {
-                        $$element.addClass('hover');
+                        $element.addClass('hover');
                         setTimeout(function() {
                             render();
                             render();
                         }, 0);
                     } else {
-                        $$element.removeClass('hover');
+                        $element.removeClass('hover');
                     }
                 });
                 render();
                 render();
             } else {
-                window.location = window.location;
+                console.log("wtf");
+                //window.location = window.location;
             }
         });
     }
@@ -509,11 +523,11 @@ $if not vertical:
         if (tagName == 'input') {
             var type = element.getAttribute('type');
             if (type == 'text') {
-                return $$(element).val();
+                return $(element).val();
             }
         }
         else if (tagName == 'textarea') {
-            return $$(element).val();
+            return $(element).val();
         }
     }
 
@@ -574,9 +588,9 @@ $if not vertical:
                 '<label for="' + id + '">' + label + '</label>' +
                 makeField(type, placeholder, id, defaultValue) +
                 makeField('hidden', defaultValue.src, 'filename-' + id, defaultValue) +
-                (type == 'image' ? '<button type="button" class="btn btn-xs btn-default" style="margin-top: 4px;" onclick="$$(\'#' + id + ', #filename-' + id + '\').val(null);$$(\'#' + id + '\').change();">Remove image</button>':'') +
+                (type == 'image' ? '<button type="button" class="btn btn-xs btn-default" style="margin-top: 4px;" onclick="$(\'#' + id + ', #filename-' + id + '\').val(null);$(\'#' + id + '\').change();">Remove image</button>':'') +
                 (type == 'image' && theme_defaults[id] ?
-                    '<button type="button" class="btn btn-xs btn-default" style="margin-top: 4px;" onclick="$$(\'#' +id + '\').val(null);$$(\'#filename-' + id + '\').val(theme_defaults[\'' + id + '\'].src);$$(\'#'+ id + '\').change();">Use theme image</button>' : '') +
+                    '<button type="button" class="btn btn-xs btn-default" style="margin-top: 4px;" onclick="$(\'#' +id + '\').val(null);$(\'#filename-' + id + '\').val(theme_defaults[\'' + id + '\'].src);$(\'#'+ id + '\').change();">Use theme image</button>' : '') +
                 '</div>';
         }
         if(type == 'textarea') {
@@ -621,15 +635,15 @@ $if not vertical:
         return '<input type="'+type+'" name="'+ id + '" id="' + id + '" value="'+placeholder+'" >';
     }
 
-    function insertInPreview($$slide, id, val){
-        $$slide.find('#' + id).html(val);
+    function insertInPreview($slide, id, val){
+        $slide.find('#' + id).html(val);
         render();
     }
 
-    function fillbucket($$slide, id, ed){
+    function fillbucket($slide, id, ed){
         if(inserts[id]){
-            insertInPreview($$slide, id, ed.getData());
-            setTimeout(fillbucket, EDITOR_TIMEOUT, $$slide, id, ed);
+            insertInPreview($slide, id, ed.getData());
+            setTimeout(fillbucket, EDITOR_TIMEOUT, $slide, id, ed);
             inserts[id] = false;
         }
         else{
@@ -637,9 +651,10 @@ $if not vertical:
         }
     }
     old_content = undefined;
-    $if old_content is not None:
+    {% if old_content %}
         // old_content is the content of the slide, before it was edited
-        old_content = $:old_content;
+        old_content = {{old_content|safe}};
+    {% endif %}
     //previous_content is the content of the slide, before changing the template
     previous_content = undefined;
 
@@ -659,7 +674,7 @@ $if not vertical:
 
 </script>
 <script>
-    $$(document).ready(function () {
+    $(document).ready(function () {
         intro_id = 'editor_slide';
         intro = introJs();
         intro.setOptions({
@@ -687,3 +702,4 @@ $if not vertical:
         });
     });
 </script>
+{% endblock %}

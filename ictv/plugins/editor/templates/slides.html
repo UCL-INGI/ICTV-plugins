@@ -1,29 +1,30 @@
-$def with (channel, capsule, slides, themes, vertical)
+{#
+    This file belongs to the ICTV project, written by Nicolas Detienne,
+    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
+    at Universite Catholique de Louvain.
 
-$#    This file belongs to the ICTV project, written by Nicolas Detienne,
-$#    Francois Michel, Maxime Piraux, Pierre Reinbold and Ludovic Taffin
-$#    at Universite Catholique de Louvain.
-$#
-$#    Copyright (C) 2017  Universite Catholique de Louvain (UCL, Belgium)
-$#
-$#    ICTV is free software: you can redistribute it and/or modify
-$#    it under the terms of the GNU Affero General Public License as published
-$#    by the Free Software Foundation, either version 3 of the License, or
-$#    (at your option) any later version.
-$#
-$#    ICTV is distributed in the hope that it will be useful,
-$#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-$#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-$#    GNU Affero General Public License for more details.
-$#
-$#    You should have received a copy of the GNU Affero General Public License
-$#    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+    Copyright (C) 2017  Universite Catholique de Louvain (UCL, Belgium)
+
+    ICTV is free software: you can redistribute it and/or modify
+    it under the terms of the GNU Affero General Public License as published
+    by the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    ICTV is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU Affero General Public License for more details.
+
+    You should have received a copy of the GNU Affero General Public License
+    along with ICTV.  If not, see <http://www.gnu.org/licenses/>.
+#}
 
 
+{% set feedbacks = get_next_feedbacks() %}
+{% set form = pop_previous_form() %}
 
-$code:
-    feedbacks = get_next_feedbacks()
-    form = pop_previous_form()
+{% if base %} {%extends "%s"% base%}{%endif%}
+{%block content%}
 <link rel="stylesheet" href="/static/plugins/editor/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/static/plugins/editor/css/bootstrap-datetimepicker.min.css">
 <style>
@@ -66,35 +67,36 @@ $code:
         padding-bottom: 80vh;
     }
 </style>
-$def create_alert(title, message, icon):
+{% macro create_alert(title, message, icon) %}
     <div class="alert alert-success alert-dismissible">
         <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-        <h4><i class="fa $icon"></i>$title</h4>
-        $message
+        <h4><i class="fa {{icon}}"></i>{{title}}</h4>
+        {{message}}
     </div>
+{% endmacro %}
 
 <section class="content" style="padding-top: 0;">
     <nav class="navbar navbar-default" style="margin-bottom: 6px;">
         <div class="container-fluid">
-            <a class="navbar-brand" href="#">$channel.name Editor</a>
-            <a href="/channels/$(channel.id)/capsules" class="btn btn-primary navbar-button">
+            <a class="navbar-brand" href="#">{{channel.name}} Editor</a>
+            <a href="/channels/{{(channel.id)}}/capsules" class="btn btn-primary navbar-button">
                 <i class="fa fa-arrow-left" aria-hidden="true"></i>
                 Back to capsules
             </a>
-            <a href="$(capsule.id)/newslide" id="button-create-slide" type="button" class="btn btn-primary navbar-button">
+            <a href="{{(capsule.id)}}/newslide" id="button-create-slide" type="button" class="btn btn-primary navbar-button">
                 <i class="fa fa-plus"></i>New slide
             </a>
             <button class="btn btn-primary navbar-button" data-toggle="modal" data-target="#import-slides-modal"><i class="fa fa-upload"></i>Import slides from PDF</button>
             <button class="btn btn-primary navbar-button" data-toggle="modal" data-target="#import-video-modal"><i class="fa fa-film"></i>Import video into capsule</button>
             <button class="btn btn-success navbar-button" data-toggle="modal" data-target="#theme-capsule-modal"><i class="fa fa-paint-brush"></i>Theme</button>
-            <button style="margin-top: 8px;margin-left: 10px" type="button" class="btn btn-primary pull-right" onclick="$$('#tour-started').submit();">
+            <button style="margin-top: 8px;margin-left: 10px" type="button" class="btn btn-primary pull-right" onclick="$('#tour-started').submit();">
                 <i class="fa fa-2x fa-question-circle" style="max-height: 20px; position: relative; left: 3px; bottom: 4px;"></i>
             </button>
         </div>
     </nav>
 
     <div class="row">
-        <div class="$('col-md-3 col-lg-3 col-xl-2' if not vertical else 'col-md-4 col-lg-4 col-xl-3')" style="padding-right: 0;">
+        <div class="{{'col-md-3 col-lg-3 col-xl-2' if not vertical else 'col-md-4 col-lg-4 col-xl-3'}}" style="padding-right: 0;">
             <div class="box" style="height: 98.5vh;display: flex; flex-direction: column; margin-bottom: 0;">
                 <div class="box-header with-border">
                     <h2 class="box-title" style="display: initial;">
@@ -102,34 +104,37 @@ $def create_alert(title, message, icon):
                     </h2>
                 </div>
                 <div class="box-body" style="flex: 1; overflow-y: scroll;">
-                        $if feedbacks.has('create', 'ok'):
-                            $:create_alert("Added", "This slide has been successfully added.", "fa-check")
-                        $elif feedbacks.has('delete', 'ok'):
-                            $:create_alert("Deleted", "This slide has been successfully deleted.", "fa-trash")
-                        $elif feedbacks.has('duplicate', 'ok'):
-                            $:create_alert("Duplicated", "This slide has been successfully duplicated.", "fa-copy")
-                        $elif feedbacks.has('duration', 'ok'):
-                            $:create_alert("Duration updated", "The duration of this slide has been successfully updated.", "fa-clock-o")
-                        $elif feedbacks.has('order', 'ok'):
-                            $:create_alert("Reordered", "The slides have been successfully reordered.", "fa-sort")
-                        $elif feedbacks.has('import', 'ok'):
-                            $:create_alert("Imported", "The slides have been successfully imported.", "fa-upload")
+                        {% if feedbacks.has('create', 'ok') %}
+                            {{create_alert("Added", "This slide has been successfully added.", "fa-check")|safe}}
+                        {% elif feedbacks.has('delete', 'ok') %}
+                            {{create_alert("Deleted", "This slide has been successfully deleted.", "fa-trash")|safe}}
+                        {% elif feedbacks.has('duplicate', 'ok') %}
+                            {{create_alert("Duplicated", "This slide has been successfully duplicated.", "fa-copy")|safe}}
+                        {% elif feedbacks.has('duration', 'ok') %}
+                            {{create_alert("Duration updated", "The duration of this slide has been successfully updated.", "fa-clock-o")|safe}}
+                        {% elif feedbacks.has('order', 'ok') %}
+                            {{create_alert("Reordered", "The slides have been successfully reordered.", "fa-sort")|safe}}
+                        {% elif feedbacks.has('import', 'ok') %}
+                            {{create_alert("Imported", "The slides have been successfully imported.", "fa-upload")|safe}}
+                        {% endif %}
 
                         <ul id="draggableList" class="list-unstyled">
-                        $for s in slides:
-                            <li class="panel panel-info" data-slideid="$s.id" data-slide-duration="$(s.duration/1000 if s.duration != -1 else '')" data-slide-order="$s.s_order">
-                                <div class="panel-heading text-center" style="padding-top: 4px; padding-bottom: 4px; max-height: $('100px' if not vertical else '150px'); overflow: hidden;">
-                                    <iframe src="$s.get_render_path()" height="$(900 if not vertical else 1400)" width="$(1600 if not vertical else 850)" style="border: 1px solid black; transform: scale(0.10);transform-origin: $('35px' if not vertical else '18.5%') 0;" frameborder="0" marginwidth="0" marginheight="0"></iframe>
+                        {% for s in slides %}
+                            <li class="panel panel-info" data-slideid="{{s.id}}" data-slide-duration="{{s.duration/1000 if s.duration != -1 else ''}}" data-slide-order="{{s.s_order}}">
+                                <div class="panel-heading text-center" style="padding-top: 4px; padding-bottom: 4px; max-height: {{'100px' if not vertical else '150px'}}; overflow: hidden;">
+                                    <iframe src="{{s.get_render_path()}}" height="{{900 if not vertical else 1400}}" width="{{1600 if not vertical else 850}}" style="border: 1px solid black; transform: scale(0.10);transform-origin: {{'35px' if not vertical else '18.5%'}} 0;" frameborder="0" marginwidth="0" marginheight="0"></iframe>
                                 </div>
                                 <div class="panel-body text-center">
                                     <button class="btn btn-xs btn-primary button-preview" data-target=""><i class="fa fa-pencil-square-o"></i>Preview</button>
-                                    $if not s.contains_video:
-                                        <a class="btn btn-xs btn-warning" href="/channels/$(channel.id)/edit/$(s.id)"><i class="fa fa-pencil-square-o"></i>Edit</a>
+                                    {% if not s.contains_video %}
+                                        <a class="btn btn-xs btn-warning" href="/channels/{{(channel.id)}}/edit/{{(s.id)}}"><i class="fa fa-pencil-square-o"></i>Edit</a>
+                                    {% endif %}
                                     <button class="btn btn-xs btn-success" data-toggle="modal" data-target="#duplicate-slide-modal"><i class="fa fa-copy"></i>Duplicate</button>
                                     <button class="btn btn-xs btn-default" data-toggle="modal" data-target="#duration-slide-modal"><i class="fa fa-clock-o"></i>Duration</button>
                                     <button class="btn btn-xs btn-danger" data-toggle="modal" data-target="#delete-slide-modal"><span class="glyphicon glyphicon-trash"></span>Delete</button>
                                 </div>
                             </li>
+                        {% endfor %}
                         </ul>
                 </div>
                 <div class="box-footer" style="padding-top: 0; padding-bottom: 0;">
@@ -138,7 +143,7 @@ $def create_alert(title, message, icon):
                             <div class="alert alert-info" style="margin-bottom: 0;">
                                 <h5>You have changed the slides order. Do you want to save the changes ?</h5>
                                 <button type="submit" class="btn btn-xs btn-primary">Save</button>
-                                <a style="text-decoration: none" type="button" class="btn btn-xs btn-primary" href="$capsule.id" id="order-cancel">Cancel</a>
+                                <a style="text-decoration: none" type="button" class="btn btn-xs btn-primary" href="{{capsule.id}}" id="order-cancel">Cancel</a>
                             </div>
                             <input type="hidden" class="form-control" id="form-new-order" name="order">
                             <input type="hidden" class="form-control" name="action" value="order">
@@ -147,50 +152,54 @@ $def create_alert(title, message, icon):
                 </div>
             </div>
         </div>
-        <div class="$('col-md-7 col-lg-7 col-xl-8' if not vertical else 'col-md-4 col-lg-4 col-xl-4 pull-right')">
+        <div class="{{'col-md-7 col-lg-7 col-xl-8' if not vertical else 'col-md-4 col-lg-4 col-xl-4 pull-right'}}">
             <div class="box">
                 <div class="box-header with-border">
                     <h1 class="box-title">Capsule preview</h1>
                 </div>
                 <div class="box-body">
-                    <div class="embed-responsive $('embed-responsive-16by9' if not vertical else 'embed-responsive-9by16')">
-                        <iframe id="iframe" class="embed-responsive-item" src="/renderer/$(channel.id)/capsule/$(capsule.id)" frameBorder="0"></iframe>
+                    <div class="embed-responsive {{'embed-responsive-16by9' if not vertical else 'embed-responsive-9by16'}}">
+                        <iframe id="iframe" class="embed-responsive-item" src="/renderer/{{(channel.id)}}/capsule/{{(capsule.id)}}" frameBorder="0"></iframe>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-2 col-lg-2 col-xl-2 $('pull-right' if vertical else '')" style="padding-left: 0;">
+        <div class="col-md-2 col-lg-2 col-xl-2 {{'pull-right' if vertical else ''}}" style="padding-left: 0;">
             <div class="box">
                 <div class="box-header with-border">
                     <h1 class="box-title">Capsule details</h1>
                 </div>
                 <div class="box-body">
-                    $if feedbacks.has('edit', 'ok'):
-                            $:create_alert("Edited", "This slide has been successfully edited.", "fa-pencil")
-                    $if feedbacks.has('edit', 'name_already_exists'):
+                    {% if feedbacks.has('edit', 'ok') %}
+                            {{create_alert("Edited", "This slide has been successfully edited.", "fa-pencil") | safe}}
+                    {% endif %}
+                    {% if feedbacks.has('edit', 'name_already_exists') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, there already exists a capsule with this name on this channel. Please choose another name
                         </div>
-                    $if feedbacks.has('edit', 'invalid_name'):
+                    {% endif %}
+                    {% if feedbacks.has('edit', 'invalid_name') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Please choose a valid name for the capsule (not only spaces, at least 2 characters not counting spaces)
                         </div>
-                    $if feedbacks.has('edit', 'dates_inverted'):
+                    {% endif %}
+                    {% if feedbacks.has('edit', 'dates_inverted') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Please choose a valid date range, the dates are inverted.
                         </div>
+                    {% endif %}
                     <div class="form-group">
                         <label for="owner">Capsule owner</label>
-                        <input id="owner" class="form-control" value="$(capsule.owner.fullname if capsule.owner else 'Editor API')" type="text" disabled>
+                        <input id="owner" class="form-control" value="{{capsule.owner.fullname if capsule.owner else 'Editor API'}}" type="text" disabled>
                     </div>
                     <form action="" id="form-edit" method="post">
                         <input name="action" value="edit" type="hidden">
                         <div class="form-group">
                             <label for="edit-name">Capsule name</label>
-                            <input name="name" class="form-control" id="edit-name" value="$capsule.name" placeholder="Name" type="text">
+                            <input name="name" class="form-control" id="edit-name" value="{{capsule.name}}" placeholder="Name" type="text">
                         </div>
 
                         <div class="form-group">
@@ -233,23 +242,26 @@ $def create_alert(title, message, icon):
                     <h4 class="modal-title">Delete this slide ?</h4>
                 </div>
                 <div class="modal-body">
-                    $if feedbacks.has('delete', 'no_id_matching'):
+                    {% if feedbacks.has('delete', 'no_id_matching') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to delete a slide that doesn't exist...
                         </div>
-                    $if feedbacks.has('delete', 'invalid_id'):
+                    {% endif %}
+                    {% if feedbacks.has('delete', 'invalid_id') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to delete a slide with an invalid id...
                         </div>
-                    $if feedbacks.has('delete', 'wrong_channel'):
+                    {% endif %}
+                    {% if feedbacks.has('delete', 'wrong_channel') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to delete a slide from another channel...
                         </div>
+                    {% endif %}
                     <input type="hidden" name="action" value="delete">
-                    <input type="hidden" id="delete-id" name="id" value="$(form.get('id') if form.get('action') == 'delete' else None)">
+                    <input type="hidden" id="delete-id" name="id" value="{{form.get('id') if form.get('action') == 'delete' else None}}">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
@@ -270,23 +282,26 @@ $def create_alert(title, message, icon):
                     <h4 class="modal-title">Duplicate this slide ?</h4>
                 </div>
                 <div class="modal-body">
-                    $if feedbacks.has('duplicate', 'no_id_matching'):
+                    {% if feedbacks.has('duplicate', 'no_id_matching') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to duplicate a slide that doesn't exist...
                         </div>
-                    $if feedbacks.has('duplicate', 'invalid_id'):
+                    {% endif %}
+                    {% if feedbacks.has('duplicate', 'invalid_id') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to duplicate a slide with an invalid id...
                         </div>
-                    $if feedbacks.has('duplicate', 'wrong_channel'):
+                    {% endif %}
+                    {% if feedbacks.has('duplicate', 'wrong_channel') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to duplicate a slide from another channel...
                         </div>
+                    {% endif %}
                     <input type="hidden" name="action" value="duplicate">
-                    <input type="hidden" id="duplicate-id" name="id" value="$(form.get('id') if form.get('action') == 'duplicate' else None)">
+                    <input type="hidden" id="duplicate-id" name="id" value="{{form.get('id') if form.get('action') == 'duplicate' else None}}">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
@@ -307,47 +322,53 @@ $def create_alert(title, message, icon):
                     <h4 class="modal-title">Change slide duration</h4>
                 </div>
                 <div class="modal-body">
-                    $if channel.get_config_param('force_duration'):
+                    {% if channel.get_config_param('force_duration') %}
                         <div class="alert alert-warning alter-dismissible" style="margin-top: 15px" role="alert">
-                            The current configuration of the channel <b><i>$channel.name</i></b> enforces all the slides to
-                            have the default duration of the channel (currently <b>$channel.get_config_param('duration') seconds</b>).
+                            The current configuration of the channel <b><i>{{channel.name}}</i></b> enforces all the slides to
+                            have the default duration of the channel (currently <b>{{channel.get_config_param('duration')}} seconds</b>).
                             You can still choose a duration for this slide but it won't take effect while
-                            the channel configuration is set to enforce the slides duration to $channel.get_config_param('duration') seconds.
+                            the channel configuration is set to enforce the slides duration to {{channel.get_config_param('duration')}} seconds.
                         </div>
-                    $if feedbacks.has('duration', 'no_id_matching'):
+                    {% endif %}
+                    {% if feedbacks.has('duration', 'no_id_matching') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to change the duration of a slide that doesn't exist...
                         </div>
-                    $if feedbacks.has('duration', 'invalid_id'):
+                    {% endif %}
+                    {% if feedbacks.has('duration', 'invalid_id') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to change the duration of a slide with an invalid id...
                         </div>
-                    $if feedbacks.has('duration', 'wrong_channel'):
+                    {% endif %}
+                    {% if feedbacks.has('duration', 'wrong_channel') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you want to change the duration of a slide from another channel...
                         </div>
-                    $if feedbacks.has('duration', 'negative_slide_duration'):
+                    {% endif %}
+                    {% if feedbacks.has('duration', 'negative_slide_duration') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you cannot set the duration of a slide to a negative value...
                         </div>
-                    $if feedbacks.has('duration', 'invalid_slide_duration'):
+                    {% endif %}
+                    {% if feedbacks.has('duration', 'invalid_slide_duration') %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Oh-oh, you try to set an invalid duration to the slide...
                         </div>
+                    {% endif %}
                     <input type="hidden" name="action" value="duration">
-                    <input type="hidden" id="duration-id" name="id" value="$(form.get('id') if form.get('action') == 'duplicate' else None)">
+                    <input type="hidden" id="duration-id" name="id" value="{{form.get('id') if form.get('action') == 'duplicate' else None}}">
                     <div class="form-group">
                         <label for="duration-default">
                             <input type="checkbox" name="duration-default" id="duration-default">
                             Use capsule default duration</label>
                         <br>
                         <label for="duration-number">Duration in seconds</label>
-                        <input type="number" min="1" step="0.001" class="form-control" placeholder="default" id="duration-number" name="duration" value="$(form.get('duration') if form.get('action') == 'duration' else '')">
+                        <input type="number" min="1" step="0.001" class="form-control" placeholder="default" id="duration-number" name="duration" value="{{form.get('duration') if form.get('action') == 'duration' else ''}}">
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -370,12 +391,13 @@ $def create_alert(title, message, icon):
                 </div>
                 <div class="modal-body">
                     <select id="themeslist" name="theme" class="form-control c-select" required>
-                        $for theme_id, theme_config in themes:
-                            <option value="$theme_id" $('selected' if theme_id == capsule.theme else '')>$:('&nbsp;' * 4 * theme_config['level'])$theme_config['name']</option>
+                        {% for theme_id, theme_config in themes %}
+                            <option value="{{theme_id}}" {{'selected' if theme_id == capsule.theme else ''}}>{{('&nbsp;' * 4 * theme_config['level'])}}{{theme_config['name']}}</option>
+                        {% endfor %}
                     </select>
 
                     <input type="hidden" name="action" value="theme">
-                    <input type="hidden" id="theme-slide-id" name="id" value="$(form.get('id') if form.get('action') == 'theme' else None)">
+                    <input type="hidden" id="theme-slide-id" name="id" value="{{form.get('id') if form.get('action') == 'theme' else None}}">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
@@ -431,14 +453,15 @@ $def create_alert(title, message, icon):
                     <h4 class="modal-title">Import video</h4>
                 </div>
                 <div class="modal-body">
-                    $if feedbacks.has('import-video', 'invalid_video_format'):
-                        $ format = feedbacks.feedback_value()
+                    {% if feedbacks.has('import-video', 'invalid_video_format') %}
+                        {%set format = feedbacks.feedback_value() %}
                         <div class="alert alert-danger alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Your video could not be transcoded to WebM automatically, please do so manually and try again.
                         </div>
-                    $if feedbacks.has('import-video', 'video_transcoding'):
-                        $ path = feedbacks.feedback_value()
+                    {% endif %}
+                    {% if feedbacks.has('import-video', 'video_transcoding') %}
+                        {%set path = feedbacks.feedback_value()%}
                         <div class="alert alert-info alter-dismissible" style="margin-top: 15px" role="alert">
                             <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
                             Your video will be transcoded to be used inside ICTV. Once done, a slide will be added to this capsule.
@@ -452,16 +475,16 @@ $def create_alert(title, message, icon):
                         </div>
                         <script>
                             function updateProgress() {
-                                $$.get('/transcoding/' + btoa("$path") + '/progress',
+                                $.get('/transcoding/' + btoa("{{path}}") + '/progress',
                                     null,
                                     function(data) {
                                         const progress = (data.progress * 100).toFixed(1);
-                                        $$('.progress-bar-green').css('width', progress + '%');
-                                        $$('.progress-bar-green').text(progress + '%');
+                                        $('.progress-bar-green').css('width', progress + '%');
+                                        $('.progress-bar-green').text(progress + '%');
                                         if (data.progress < 1) {
                                             setTimeout(updateProgress, 5000)
                                             if (data.progress > 0) {
-                                                $$('#transcode-status-message').text('Your video is being transcoded by ICTV.');
+                                                $('#transcode-status-message').text('Your video is being transcoded by ICTV.');
                                             }
                                         } else {
                                             setTimeout(function() {
@@ -474,6 +497,7 @@ $def create_alert(title, message, icon):
                             }
                             updateProgress()
                         </script>
+                    {% endif %}
                     <input type="hidden" name="action" value="import-video">
                     <div class="form-group">
                         <div class="form-group">
@@ -491,9 +515,10 @@ $def create_alert(title, message, icon):
                 </div>
                 <div class="modal-footer" style="vertical-align: middle">
                     <p class="pull-left help-block">Importing can take a long time, please remain patient ;)</p>
-                    $if not feedbacks.has('import-video', 'video_transcoding'):
+                    {% if not feedbacks.has('import-video', 'video_transcoding') %}
                         <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
                         <button type="submit" id="import-video-submit" class="btn btn-success">Import</button>
+                    {% endif %}
                 </div>
             </form>
         </div>
@@ -504,93 +529,94 @@ $def create_alert(title, message, icon):
 <script type="text/javascript" src="/static/plugins/editor/js/en-gb.min.js"></script>
 <script type="text/javascript" src="/static/plugins/editor/js/bootstrap-datetimepicker.min.js"></script>
 <script>
-    $$(window).resize(function() {
+    $(window).resize(function() {
         setTimeout(function () {
-            $$('.col-lg-3.col-xl-2 .box').height(parseInt($$('.content-wrapper').css('min-height'))-68);
+            $('.col-lg-3.col-xl-2 .box').height(parseInt($('.content-wrapper').css('min-height'))-68);
         }, 10);
     });
-    $$(document).ready(function () {
-        $$('[data-toggle="tooltip"]').tooltip();
-        $$('[data-toggle="popover"]').popover();
-        $$('.col-lg-3.col-xl-2 .box').height(parseInt($$('.content-wrapper').css('min-height'))-68);
+    $(document).ready(function () {
+        $('[data-toggle="tooltip"]').tooltip();
+        $('[data-toggle="popover"]').popover();
+        $('.col-lg-3.col-xl-2 .box').height(parseInt($('.content-wrapper').css('min-height'))-68);
 
-        $$dtpfrom = $$('#datetimepickerfrom');
-        $$dtpto = $$('#datetimepickerto');
-        $$dtpfrom.datetimepicker({
+        $dtpfrom = $('#datetimepickerfrom');
+        $dtpto = $('#datetimepickerto');
+        $dtpfrom.datetimepicker({
             format: 'DD MMM YYYY, H[h]mm',
             sideBySide: true,
             locale: 'en-gb'
         });
-        $$dtpto.datetimepicker({
+        $dtpto.datetimepicker({
             format: 'DD MMM YYYY, H[h]mm',
             sideBySide: true,
             locale: 'en-gb'
         });
-        $$dtpfrom.data("DateTimePicker").date(moment('$capsule.validity_from'));
-        $$dtpto.data("DateTimePicker").date(moment('$capsule.validity_to'));
-        $$('#edit-submit').click(function(e){
-            var from = $$dtpfrom.data("DateTimePicker").date();
+        $dtpfrom.data("DateTimePicker").date(moment('{{capsule.validity_from}}'));
+        $dtpto.data("DateTimePicker").date(moment('{{capsule.validity_to}}'));
+        $('#edit-submit').click(function(e){
+            var from = $dtpfrom.data("DateTimePicker").date();
             from = from.format('YYYY-MM-DDTHH:mm:ssZZ');
-            $$('#date-from-hidden').val(from);
-            var to = $$dtpto.data("DateTimePicker").date();
+            $('#date-from-hidden').val(from);
+            var to = $dtpto.data("DateTimePicker").date();
             to = to.format('YYYY-MM-DDTHH:mm:ssZZ');
-            $$('#date-to-hidden').val(to);
+            $('#date-to-hidden').val(to);
         });
 
-        var panelList = $$('#draggableList');
+        var panelList = $('#draggableList');
 
         panelList.sortable({
             update: function () {
-                $$('.panel', panelList).each(function (index, elem) {
-                    var $$listItem = $$(elem);
-                    newIndex = $$listItem.index();
-                    slides_order[$$listItem.attr('data-slideid')] = newIndex;
+                $('.panel', panelList).each(function (index, elem) {
+                    var $listItem = $(elem);
+                    newIndex = $listItem.index();
+                    slides_order[$listItem.attr('data-slideid')] = newIndex;
                 });
-                $$('#form-new-order').val(JSON.stringify(slides_order))
-                $$('#button-create-slide').hide();
-                $$('#message-when-dragged').show();
+                $('#form-new-order').val(JSON.stringify(slides_order))
+                $('#button-create-slide').hide();
+                $('#message-when-dragged').show();
             }
         });
-        $$(".button-preview").click(function(e){
+        $(".button-preview").click(function(e){
             order = e.currentTarget.parentElement.parentElement.getAttribute('data-slide-order');
             console.log(order);
             document.getElementById('iframe').contentWindow.Reveal.slide(0,order);
         });
-        $if vertical:
-            $$('#iframe').on("load", function(){
+        {% if vertical %}
+            $('#iframe').on("load", function(){
                 this.contentWindow.initPortrait();
             });
-        modaldelete = $$('#delete-slide-modal');
+        {% endif %}
+        modaldelete = $('#delete-slide-modal');
         modaldelete.on('show.bs.modal', function(e){
             var slideid = e.relatedTarget.parentElement.parentElement.getAttribute('data-slideid');
-            $$('#form-delete')[0].reset();
-            $$('#delete-id').val(slideid);
+            $('#form-delete')[0].reset();
+            $('#delete-id').val(slideid);
         });
-        modalduplicate = $$('#duplicate-slide-modal');
+        modalduplicate = $('#duplicate-slide-modal');
         modalduplicate.on('show.bs.modal', function(e){
             var slideid = e.relatedTarget.parentElement.parentElement.getAttribute('data-slideid');
-            $$('#form-duplicate')[0].reset();
-            $$('#duplicate-id').val(slideid);
+            $('#form-duplicate')[0].reset();
+            $('#duplicate-id').val(slideid);
         });
-        modalduration = $$('#duration-slide-modal');
+        modalduration = $('#duration-slide-modal');
         modalduration.on('show.bs.modal', function(e){
             var slideid = e.relatedTarget.parentElement.parentElement.getAttribute('data-slideid');
             var slideDuration = e.relatedTarget.parentElement.parentElement.getAttribute('data-slide-duration');
-            $$('#form-duration')[0].reset();
-            $$('#duration-id').val(slideid);
-            var number = $$("#duration-number");
+            $('#form-duration')[0].reset();
+            $('#duration-id').val(slideid);
+            var number = $("#duration-number");
             number.val(slideDuration);
-            //$$("#duration-default").prop("checked", slideDuration === "");
+            //$("#duration-default").prop("checked", slideDuration === "");
             //number.prop("disabled", slideDuration === "");
-            number.prop("placeholder", "default ($(channel.get_config_param('duration'))s)");
+            number.prop("placeholder", "default ({{(channel.get_config_param('duration'))}}s)");
             number.attr("data-duration", slideDuration);
         });
 
-        $$("#duration-default").change(function(e){
-            var number = $$("#duration-number");
+        $("#duration-default").change(function(e){
+            var number = $("#duration-number");
             if(this.checked){
                 number.prop("disabled", true);
-                number.attr("placeholder", "default ($(channel.get_config_param('duration'))s)");
+                number.attr("placeholder", "default ({{(channel.get_config_param('duration'))}}s)");
                 number.val("");
             }
             else{
@@ -601,31 +627,33 @@ $def create_alert(title, message, icon):
             }
         });
 
-        $if feedbacks.has_type('delete') and not feedbacks.has('delete', 'ok'):
+        {% if feedbacks.has_type('delete') and not feedbacks.has('delete', 'ok') %}
             fire_modal('#delete-slide-modal');
-        $elif feedbacks.has_type('duration') and not feedbacks.has('duration', 'ok'):
+        {% elif feedbacks.has_type('duration') and not feedbacks.has('duration', 'ok') %}
             fire_modal('#duration-slide-modal');
-        $elif feedbacks.has_type('import-video') and not feedbacks.has('import-video', 'ok'):
+        {% elif feedbacks.has_type('import-video') and not feedbacks.has('import-video', 'ok') %}
             fire_modal('#import-video-modal');
+        {%endif%}
     });
     function fire_modal(modalSelector) {
-        var $$modal = $$(modalSelector);
-        $$modal.removeClass('fade');
-        $$modal.one('hidden.bs.modal', function () {
-            $$modal.find('.alert').detach();
-            $$modal.addClass('fade');
+        var $modal = $(modalSelector);
+        $modal.removeClass('fade');
+        $modal.one('hidden.bs.modal', function () {
+            $modal.find('.alert').detach();
+            $modal.addClass('fade');
         });
-        $$modal.modal('show');
+        $modal.modal('show');
     }
 
     slides_order = {
-        $for s in slides:
-            $s.id:$s.s_order,
+        {% for s in slides %}
+            {{s.id}}:{{s.s_order}},
+        {% endfor %}
     };
 
 </script>
 <script>
-    $$(document).ready(function () {
+    $(document).ready(function () {
         intro_id = 'editor_slides';
         intro = introJs();
         intro.setOptions({
@@ -657,3 +685,4 @@ $def create_alert(title, message, icon):
         });
     });
 </script>
+{% endblock %}

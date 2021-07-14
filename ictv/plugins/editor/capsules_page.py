@@ -237,9 +237,17 @@ class CapsulesPage(EditorPage):
         default_from = datetime.datetime.now()
         time_delta = datetime.timedelta(hours=validity)
         default_to = default_from + time_delta
+
+        def get_data_edit_object(capsule):
+            object = {'id': capsule.id, 'name': capsule.name}
+            object['from'] = c.validity_from.replace(microsecond=0).isoformat()
+            object['to'] = c.validity_to.replace(microsecond=0).isoformat()
+            return json.dumps(object)
+
         return self.renderer.capsules(channel=channel,
                                       capsules=capsules,
                                       expired_capsules=expired_capsules,
                                       capsules_all=capsules_all,
                                       default_from=default_from.replace(microsecond=0).isoformat(),
-                                      default_to=default_to.replace(microsecond=0).isoformat(), vertical=vertical)
+                                      default_to=default_to.replace(microsecond=0).isoformat(), vertical=vertical,
+                                      get_data_edit_object=get_data_edit_object)
