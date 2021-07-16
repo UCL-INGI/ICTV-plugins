@@ -88,9 +88,9 @@ def get_app(ictv_app):
              'pop_previous_form': pop_previous_form, 'json': json,
              'UserPermissions': UserPermissions,
              'str': str, 'sidebar_collapse': True, 'show_header': False,
-             'show_footer': False, 'User': User}
+             'show_footer': False, 'User': User,'base':'base.html'}
     app.renderer = render_jinja([os.path.join(os.path.dirname(__file__), 'templates/'),os.path.join(get_root_path(), 'templates/')])
-    app.renderer._lookup.globals.update(base='base.html',**template_globals)
+    app.renderer._lookup.globals.update(**template_globals)
 
 
     def get_templates():
@@ -387,8 +387,9 @@ def update_slide(form, storage_manager, user_id):
             filename_key = 'filename-' + key
             if value == b'':
                 # Asset already exists
-                if not form[filename_key].startswith('/static/themes/') and \
-                   not form[filename_key].startswith('/static/plugins/editor'): # Prevent setting a default value coming from the theme as real content.
+                if (not form[filename_key].startswith('/static/themes/') and \
+                   not form[filename_key].startswith('/static/plugins/editor')) or \
+                   key.startswith("background-"): # Prevent setting a default value coming from the theme as real content.
                     content[key] = {'src': form[filename_key]}
             else:
                 asset = storage_manager.store_file(value, form[filename_key], user=user_id)

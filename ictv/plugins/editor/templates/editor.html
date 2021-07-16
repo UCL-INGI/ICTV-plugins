@@ -20,7 +20,7 @@
 #}
 
 {% set ntemplates_per_row_carousel = 4 %}
-{% extends "%s" % base %}
+{%if base%}{% extends "%s" % base %}{%endif%}
 
 {% block content %}
     {% macro carousel() %}

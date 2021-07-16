@@ -24,7 +24,7 @@
 {% set feedbacks = get_next_feedbacks() %}
 {% set form = pop_previous_form() %}
 
-{% extends "%s" % base %}
+{%if base%}{% extends "%s" % base %}{%endif%}
 {% block content %}
 <link rel="stylesheet" href="/static/plugins/editor/css/jquery-ui.min.css">
 <link rel="stylesheet" href="/static/plugins/editor/css/bootstrap-datetimepicker.min.css">
