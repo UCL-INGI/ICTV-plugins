@@ -40,6 +40,8 @@ from ictv.plugin_manager.plugin_utils import ChannelGate
 from ictv.plugins.rss.rss import feedparser_parse, get_content
 from ictv.renderer.renderer import Templates
 
+from web.contrib.template import render_jinja
+
 urls = (
     'index', 'ictv.plugins.rss.app.IndexPage',
     'feed', 'ictv.plugins.rss.app.FeedGetter',
@@ -50,17 +52,19 @@ urls = (
 
 def get_app(ictv_app):
     app = web.application(urls, globals())
-    app.renderer = web.template.render(os.path.join(os.path.dirname(__file__), 'templates'),
-                                       base=os.path.join(get_root_path(), 'templates', 'base'),
-                                       globals={'session': ictv_app.session,
-                                                'get_feedbacks': get_feedbacks,
-                                                'get_next_feedbacks': get_next_feedbacks,
-                                                'pop_previous_form': pop_previous_form,
-                                                'UserPermissions': UserPermissions,
-                                                'str': str, 'sidebar_collapse': True, 'show_header': False,
-                                                'show_footer': False, 'User': User})
+    print(ictv_app.session.__dict__)
+    template_globals = {'session': ictv_app.session,
+             'get_feedbacks': get_feedbacks,
+             'get_next_feedbacks': get_next_feedbacks,
+             'pop_previous_form': pop_previous_form,
+             'UserPermissions': UserPermissions,
+             'str': str, 'sidebar_collapse': True, 'show_header': False,
+             'show_footer': False, 'User': User,'base':'base.html'}
+    app.renderer = render_jinja([os.path.join(os.path.dirname(__file__), 'templates/'),os.path.join(get_root_path(), 'templates/')])
+    app.renderer._lookup.globals.update(**template_globals)
 
     RssPage.plugin_app = app
+
     return app
 
 
@@ -91,7 +95,8 @@ class IndexPage(RssPage):
                 readable_params=readable_params,
                 writable_params=writable_params,
                 can_modify_cache=False,
-                can_modify_capsule_filter=False
+                can_modify_capsule_filter=False,
+                pattern=re.compile(r"list\[.*\]")
             )
 
         config_page = re.findall(rss, str(config_page))[0][0]
