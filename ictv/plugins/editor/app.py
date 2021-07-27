@@ -70,19 +70,7 @@ def get_app(ictv_app):
     )
 
     app = web.application(urls, globals())
-### OLD ###
-#    app.renderer = web.template.render(os.path.join(os.path.dirname(__file__), 'templates'),
-#                                       base=os.path.join(get_root_path(), 'templates', 'base'),
-#                                       globals={'session': ictv_app.session,
-#                                                'get_feedbacks': get_feedbacks, 'get_next_feedbacks': get_next_feedbacks,
-#                                                'pop_previous_form': pop_previous_form, 'json': json,
-#                                                'UserPermissions': UserPermissions,
-#                                                'str': str, 'sidebar_collapse': True, 'show_header': False,
-#                                                'show_footer': False, 'User': User},
-#                                       cache=not ictv_app.config['debug']['debug_on_error'])
-#
 
-### Jinja2 ###
     template_globals = {'session': ictv_app.session,
              'get_feedbacks': get_feedbacks, 'get_next_feedbacks': get_next_feedbacks,
              'pop_previous_form': pop_previous_form, 'json': json,
