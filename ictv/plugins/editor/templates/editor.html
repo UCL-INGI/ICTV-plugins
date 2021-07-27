@@ -40,7 +40,7 @@
                     <div class="carousel-inner" role="listbox">
                         <div class="item active">
                             <div class="row">
-                                {% set  i = 1 %}
+                                {% set  i = namespace(value=1) %}
                                 {% for template_id, template_attrs in (templates.items() | list) %}
                                     {% set template_imgs = template_attrs['themes'] %}
                                     {% set template_name = template_attrs['name'] %}
@@ -75,13 +75,13 @@
                                             </div>
                                             </div>
                                         {% endif %}
-                                        {% if i % ntemplates_per_row_carousel == 0 %}
+                                        {% if i.value % ntemplates_per_row_carousel == 0 %}
                                             </div>
                                             </div>
                                             <div class="item">
                                             <div class="row">
                                         {% endif %}
-                                        {% set  i = i + 1 %}
+                                        {% set i.value = i.value + 1 %}
                                     {% elif loop.last %}
                                         </div>
                                         </div>
