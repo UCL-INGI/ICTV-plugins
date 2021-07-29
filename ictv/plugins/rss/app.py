@@ -52,7 +52,6 @@ urls = (
 
 def get_app(ictv_app):
     app = web.application(urls, globals())
-    print(ictv_app.session.__dict__)
     template_globals = {'session': ictv_app.session,
              'get_feedbacks': get_feedbacks,
              'get_next_feedbacks': get_next_feedbacks,
