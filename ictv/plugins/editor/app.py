@@ -46,6 +46,8 @@ from ictv.plugin_manager.plugin_utils import ChannelGate, seeother
 from ictv.plugins.editor.editor import EditorSlide, EditorCapsule, AssetSlideMapping
 from ictv.renderer.renderer import SlideRenderer, Themes, Templates
 
+from web.contrib.template import render_jinja
+
 
 def get_app(ictv_app):
     """ Returns the web.py application of the editor. """
@@ -68,15 +70,16 @@ def get_app(ictv_app):
     )
 
     app = web.application(urls, globals())
-    app.renderer = web.template.render(os.path.join(os.path.dirname(__file__), 'templates'),
-                                       base=os.path.join(get_root_path(), 'templates', 'base'),
-                                       globals={'session': ictv_app.session,
-                                                'get_feedbacks': get_feedbacks, 'get_next_feedbacks': get_next_feedbacks,
-                                                'pop_previous_form': pop_previous_form, 'json': json,
-                                                'UserPermissions': UserPermissions,
-                                                'str': str, 'sidebar_collapse': True, 'show_header': False,
-                                                'show_footer': False, 'User': User},
-                                       cache=not ictv_app.config['debug']['debug_on_error'])
+
+    template_globals = {'session': ictv_app.session,
+             'get_feedbacks': get_feedbacks, 'get_next_feedbacks': get_next_feedbacks,
+             'pop_previous_form': pop_previous_form, 'json': json,
+             'UserPermissions': UserPermissions,
+             'str': str, 'sidebar_collapse': True, 'show_header': False,
+             'show_footer': False, 'User': User,'base':'base.html'}
+    app.renderer = render_jinja([os.path.join(os.path.dirname(__file__), 'templates/'),os.path.join(get_root_path(), 'templates/')])
+    app.renderer._lookup.globals.update(**template_globals)
+
 
     def get_templates():
         """ Returns a list of templates usable by the editor. """
@@ -372,8 +375,9 @@ def update_slide(form, storage_manager, user_id):
             filename_key = 'filename-' + key
             if value == b'':
                 # Asset already exists
-                if not form[filename_key].startswith('/static/themes/') and \
-                   not form[filename_key].startswith('/static/plugins/editor'): # Prevent setting a default value coming from the theme as real content.
+                if (not form[filename_key].startswith('/static/themes/') and \
+                   not form[filename_key].startswith('/static/plugins/editor')) or \
+                   key.startswith("background-"): # Prevent setting a default value coming from the theme as real content.
                     content[key] = {'src': form[filename_key]}
             else:
                 asset = storage_manager.store_file(value, form[filename_key], user=user_id)
