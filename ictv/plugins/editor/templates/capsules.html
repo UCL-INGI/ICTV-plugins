@@ -905,7 +905,7 @@
         {% elif  feedbacks.has_type('delete') and not feedbacks.has('delete', 'ok') %}
             fire_modal('#delete-capsule-modal');
         {% elif  feedbacks.has_type('edit') and not feedbacks.has('edit', 'ok') %}
-            data_edit = {'name': '}}(form.name)}}', 'id': '{{(form.id)}}', 'from': '{{(form["date-from"])}}', 'to': '{{(form["date-to"])}}'};
+            data_edit = {'name': '{{form.name}}', 'id': '{{(form.id)}}', 'from': '{{(form["date-from"])}}', 'to': '{{(form["date-to"])}}'};
             fire_modal('#edit-capsule-modal');
         {% elif  feedbacks.has_type('import-capsule') and not feedbacks.has('import-capsule', 'ok') %}
             fire_modal('#import-capsule-modal');

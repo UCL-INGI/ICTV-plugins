@@ -29,7 +29,7 @@ from ictv.plugins.editor.editor import EditorCapsule
 
 class RenderExpired(EditorPage):
     @ChannelGate.contributor
-    def GET(self, channel):
+    def get(self, channel):
         capsules = EditorCapsule.selectBy(channel=channel).filter(
             EditorCapsule.q.validity_to <= datetime.now()).orderBy('c_order')
         list_to_render = []
@@ -41,7 +41,7 @@ class RenderExpired(EditorPage):
 
 class RenderCurrentAndFuture(EditorPage):
     @ChannelGate.contributor
-    def GET(self, channel):
+    def get(self, channel):
         capsules = EditorCapsule.selectBy(channel=channel).filter(
             EditorCapsule.q.validity_to > datetime.now()).orderBy('c_order')
         list_to_render = []

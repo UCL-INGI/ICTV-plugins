@@ -125,7 +125,7 @@
                                     <iframe src="{{s.get_render_path()}}" height="{{900 if not vertical else 1400}}" width="{{1600 if not vertical else 850}}" style="border: 1px solid black; transform: scale(0.10);transform-origin: {{'35px' if not vertical else '18.5%'}} 0;" frameborder="0" marginwidth="0" marginheight="0"></iframe>
                                 </div>
                                 <div class="panel-body text-center">
-                                    <button class="btn btn-xs btn-primary button-preview" data-target=""><i class="fa fa-pencil-square-o"></i>Preview</button>
+                                    <button class="btn btn-xs btn-primary button-preview" data-target=""><i class="fa fa-eye"></i>Preview</button>
                                     {% if not s.contains_video %}
                                         <a class="btn btn-xs btn-warning" href="/channels/{{(channel.id)}}/edit/{{(s.id)}}"><i class="fa fa-pencil-square-o"></i>Edit</a>
                                     {% endif %}

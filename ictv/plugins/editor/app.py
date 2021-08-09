@@ -26,7 +26,6 @@ import os
 from collections import OrderedDict
 from functools import partial
 
-import web
 from ictv.plugin_manager.plugin_slide import PluginSlide
 
 from ictv.storage.storage_manager import StorageManager
@@ -46,31 +45,15 @@ from ictv.plugin_manager.plugin_utils import ChannelGate, seeother
 from ictv.plugins.editor.editor import EditorSlide, EditorCapsule, AssetSlideMapping
 from ictv.renderer.renderer import SlideRenderer, Themes, Templates
 
-from web.contrib.template import render_jinja
-
+import ictv
+from ictv.common.utils import get_methods
+import ictv.flask.response as resp
+from ictv.flask.migration_adapter import FrankenFlask, render_jinja
 
 def get_app(ictv_app):
-    """ Returns the web.py application of the editor. """
+    """ Returns a flask application for the editor. """
 
-    urls = (
-        'index', 'ictv.plugins.editor.capsules_page.CapsulesPage',
-        'template/(\d+)/(.+)', 'ictv.plugins.editor.app.ServeTemplate',
-        'capsules', 'ictv.plugins.editor.capsules_page.CapsulesPage',
-        'capsules/(\d+)', 'ictv.plugins.editor.slides_page.SlidesPage',
-        'capsules/(\d+)/newslide', 'ictv.plugins.editor.app.Index',
-        'edit/(\d+)', 'ictv.plugins.editor.app.Edit',
-        'preview/expired', 'ictv.plugins.editor.rendering_pages.RenderExpired',
-        'preview/currentandfuture', 'ictv.plugins.editor.rendering_pages.RenderCurrentAndFuture',
-        'render/(\d+)/(\d+)?/?(.*)', 'ictv.plugins.editor.app.LocalSlideRender',
-        'api/capsules', 'ictv.plugins.editor.api.APIIndex',
-        'api/capsules/(\d+)', 'ictv.plugins.editor.api.APICapsules',
-        'api/capsules/(\d+)/slides', 'ictv.plugins.editor.api.APIIndexSlides',
-        'api/capsules/(\d+)/slides/(\d+)', 'ictv.plugins.editor.api.APISlides',
-        'api/templates', 'ictv.plugins.editor.api.APITemplates',
-    )
-
-    app = web.application(urls, globals())
-
+    app = FrankenFlask(__name__)
     template_globals = {'session': ictv_app.session,
              'get_feedbacks': get_feedbacks, 'get_next_feedbacks': get_next_feedbacks,
              'pop_previous_form': pop_previous_form, 'json': json,
@@ -80,6 +63,9 @@ def get_app(ictv_app):
     app.renderer = render_jinja([os.path.join(os.path.dirname(__file__), 'templates/'),os.path.join(get_root_path(), 'templates/')])
     app.renderer._lookup.globals.update(**template_globals)
 
+    app.register_before_request(lambda : lambda : os.chdir(get_root_path()))
+
+    init_mapping(app)
 
     def get_templates():
         """ Returns a list of templates usable by the editor. """
@@ -235,7 +221,7 @@ class EditorPage(ICTVAuthPage):
 
     @property
     def editor_app(self):
-        """ Returns the web.py application singleton of the editor. """
+        """ Returns the flask application singleton of the editor. """
         return EditorPage.plugin_app
 
     @property
@@ -257,7 +243,7 @@ class EditorPage(ICTVAuthPage):
 class Index(EditorPage):
     @ChannelGate.contributor
     @sidebar
-    def GET(self, capsuleid, channel):
+    def get(self, capsuleid, channel):
         try:
             capsule = EditorCapsule.get(capsuleid)
             if capsule.channel != channel:
@@ -284,8 +270,8 @@ class Index(EditorPage):
                                     vertical=vertical)
 
     @ChannelGate.contributor
-    def POST(self, capsuleid, channel):
-        form = web.input()
+    def post(self, capsuleid, channel):
+        form = self.form
         content, assets = update_slide(form=form, storage_manager=StorageManager(channel.id), user_id=self.session['user']['id'])
         template = form['template']
         try:
@@ -299,18 +285,18 @@ class Index(EditorPage):
         list(capsule.slides).append(s)
         for asset in assets:
             mapping = AssetSlideMapping(assetID=asset.id, slideID=s.id)
-        raise seeother(channel.id, '/capsules/' + str(capsuleid))
+        return seeother(channel.id, '/capsules/' + str(capsuleid))
 
 
 class Edit(EditorPage):
     @ChannelGate.contributor
     @sidebar
-    def GET(self, slide_id, channel):
+    def get(self, slide_id, channel):
         try:
             slide_id = int(slide_id)
             s = EditorSlide.get(slide_id)
             if s.contains_video:
-                raise seeother(channel.id, '/capsules/%d' % s.capsule.id)
+                return seeother(channel.id, '/capsules/%d' % s.capsule.id)
             plugin_s = s.to_plugin_slide()
         except ValueError:
             return "this is not a valid slide id"
@@ -338,14 +324,14 @@ class Edit(EditorPage):
                                     vertical=channel.get_config_param('vertical'))
 
     @ChannelGate.contributor
-    def POST(self, slide_id, channel):
+    def post(self, slide_id, channel):
         try:
             s_db = EditorSlide.get(int(slide_id))
         except ValueError:
             return "this is not a valid slide id"
         except SQLObjectNotFound:
             return "there is no slide with the id " + str(slide_id) + " in the channel " + str(channel.id)
-        form = web.input()
+        form = self.form
         new_content, assets = update_slide(form=form, storage_manager=StorageManager(channel.id), user_id=self.session['user']['id'])
         template = form['template']
         previous_content = copy.deepcopy(s_db.content)
@@ -359,7 +345,7 @@ class Edit(EditorPage):
             mapping = AssetSlideMapping(assetID=asset.id, slideID=s_db.id)
         s_db.template = template
         s_db.content = new_content  # Force SQLObject update
-        raise seeother(channel.id, '/capsules/' + str(s_db.capsule.id))
+        return seeother(channel.id, '/capsules/' + str(s_db.capsule.id))
 
 
 def update_slide(form, storage_manager, user_id):
@@ -373,6 +359,7 @@ def update_slide(form, storage_manager, user_id):
         elif key.startswith("logo-") or key.startswith("image-") or key.startswith("background-") and not (key.endswith("-cover") or key.endswith("-color")):
             # when there is an image input
             filename_key = 'filename-' + key
+            value = value.read()
             if value == b'':
                 # Asset already exists
                 if (not form[filename_key].startswith('/static/themes/') and \
@@ -390,7 +377,7 @@ def update_slide(form, storage_manager, user_id):
 
 
 class ServeTemplate(EditorPage):
-    def GET(self, capsuleid, template_name):
+    def get(self, capsuleid, template_name):
         if template_name not in self.slide_templates:
             return 'no such template : "' + template_name + '"'
         else:
@@ -405,7 +392,7 @@ class ServeTemplate(EditorPage):
 
 
 class LocalSlideRender(EditorPage):  # TODO: This is not secure
-    def GET(self, capsule_id, slide_id=None, template=None):
+    def get(self, capsule_id, slide_id=None, template=None):
         capsule = EditorCapsule.get(capsule_id)
         theme = capsule.theme if capsule.theme in Themes else self.config['default_theme']
         if slide_id:
@@ -456,3 +443,27 @@ class LocalSlideRender(EditorPage):  # TODO: This is not secure
         SlideRenderer(renderer_globals=renderer_globals, app=self).render_slide(slide)
 
         return slide_defaults
+
+from ictv.plugins.editor import capsules_page, slides_page, rendering_pages, api
+
+def init_mapping(subapp):
+    cp_view = ictv.plugins.editor.capsules_page.CapsulesPage.as_view('CapsulesPage')
+    subapp.add_url_rule('/index', view_func=cp_view, methods=get_methods(ictv.plugins.editor.capsules_page.CapsulesPage))
+    subapp.add_url_rule('/template/<int:capsuleid>/<string:template_name>', view_func=ictv.plugins.editor.app.ServeTemplate.as_view('ServeTemplate'), methods=get_methods(ictv.plugins.editor.app.ServeTemplate))
+    subapp.add_url_rule('/capsules', view_func=cp_view, methods=get_methods(ictv.plugins.editor.capsules_page.CapsulesPage))
+    subapp.add_url_rule('/capsules/<int:capsuleid>', view_func=ictv.plugins.editor.slides_page.SlidesPage.as_view('SlidesPage'), methods=get_methods(ictv.plugins.editor.slides_page.SlidesPage))
+    subapp.add_url_rule('/capsules/<int:capsuleid>/newslide', view_func=ictv.plugins.editor.app.Index.as_view('Index'), methods=get_methods(ictv.plugins.editor.app.Index))
+    subapp.add_url_rule('/edit/<int:slide_id>', view_func=ictv.plugins.editor.app.Edit.as_view('Edit'), methods=get_methods(ictv.plugins.editor.app.Edit))
+    subapp.add_url_rule('/preview/expired', view_func=ictv.plugins.editor.rendering_pages.RenderExpired.as_view('RenderExpired'), methods=get_methods(ictv.plugins.editor.rendering_pages.RenderExpired))
+    subapp.add_url_rule('/preview/currentandfuture', view_func=ictv.plugins.editor.rendering_pages.RenderCurrentAndFuture.as_view('RenderCurrentAndFuture'), methods=get_methods(ictv.plugins.editor.rendering_pages.RenderCurrentAndFuture))
+    lsr_view = ictv.plugins.editor.app.LocalSlideRender.as_view('LocalSlideRender')
+    subapp.add_url_rule('/render/<int:capsule_id>/<int:slide_id>/<string:template>', view_func=lsr_view, methods=get_methods(ictv.plugins.editor.app.LocalSlideRender))
+    subapp.add_url_rule('/render/<int:capsule_id>/<int:slide_id>', view_func=lsr_view, methods=get_methods(ictv.plugins.editor.app.LocalSlideRender))
+    subapp.add_url_rule('/render/<int:capsule_id>/<string:template>', view_func=lsr_view, methods=get_methods(ictv.plugins.editor.app.LocalSlideRender))
+    subapp.add_url_rule('/api/capsules', view_func=ictv.plugins.editor.api.APIIndex.as_view('APIIndex'), methods=get_methods(ictv.plugins.editor.api.APIIndex))
+    subapp.add_url_rule('/api/capsules/<int:capsule_id>', view_func=ictv.plugins.editor.api.APICapsules.as_view('APICapsules'), methods=get_methods(ictv.plugins.editor.api.APICapsules))
+    subapp.add_url_rule('/api/capsules/<int:capsule_id>/slides', view_func=ictv.plugins.editor.api.APIIndexSlides.as_view('APIIndexSlides'), methods=get_methods(ictv.plugins.editor.api.APIIndexSlides))
+    subapp.add_url_rule('/api/capsules/<int:capsule_id>/slides/<int:slide_id>', view_func=ictv.plugins.editor.api.APISlides.as_view('APISlides'), methods=get_methods(ictv.plugins.editor.api.APISlides))
+    subapp.add_url_rule('/api/templates', view_func=ictv.plugins.editor.api.APITemplates.as_view('APITemplates'), methods=get_methods(ictv.plugins.editor.api.APITemplates))
+
+

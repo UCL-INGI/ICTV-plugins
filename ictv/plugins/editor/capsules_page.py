@@ -23,7 +23,6 @@ import datetime
 import json
 from json import JSONDecodeError
 
-import web
 from pymediainfo import MediaInfo
 from sqlobject import SQLObjectNotFound
 from sqlobject.dberrors import DuplicateEntryError
@@ -38,16 +37,19 @@ from ictv.plugins.editor.app import EditorPage
 from ictv.plugins.editor.editor import EditorCapsule, EditorSlide, AssetSlideMapping
 from ictv.storage.storage_manager import StorageManager
 
+import flask
+import ictv.flask.response as resp
 
 class CapsulesPage(EditorPage):
     @ChannelGate.contributor
-    def GET(self, channel):
+    def get(self, channel):
         capsules = EditorCapsule.rectify_c_order(channel.id)
         return self.render_page(channel, capsules=capsules)
 
     @ChannelGate.contributor
-    def POST(self, channel):
-        form = web.input(pdf={}, video={})  # Force CGI FieldStorage object to be created for large files
+    def post(self, channel):
+        form = self.form
+
         logger_extra = {'channel_name': channel.name, 'channel_id': channel.id}
         logger = get_logger('editor', channel)
         capsules = None
@@ -150,7 +152,7 @@ class CapsulesPage(EditorPage):
                             slide_files = []
                             try:
                                 with Color(background_color) as bg:
-                                    with Image(blob=form.pdf.file.read(), resolution=150) as pdf:
+                                    with Image(blob=form.pdf.read(), resolution=150) as pdf:
                                         for i, page in enumerate(pdf.sequence):
                                             img_page = Image(image=page)
                                             img_page.background_color = bg
@@ -180,7 +182,7 @@ class CapsulesPage(EditorPage):
                                 capsule.destroySelf()
                                 raise ImmediateFeedback(form.action, 'invalid_video_format', e.type if hasattr(e, 'type') else None)
                         else:
-                            raise web.badrequest()
+                            resp.badrequest()
 
                 except DuplicateEntryError:
                     raise ImmediateFeedback(form.action, 'name_already_exists')
@@ -240,8 +242,8 @@ class CapsulesPage(EditorPage):
 
         def get_data_edit_object(capsule):
             object = {'id': capsule.id, 'name': capsule.name}
-            object['from'] = c.validity_from.replace(microsecond=0).isoformat()
-            object['to'] = c.validity_to.replace(microsecond=0).isoformat()
+            object['from'] = capsule.validity_from.replace(microsecond=0).isoformat()
+            object['to'] = capsule.validity_to.replace(microsecond=0).isoformat()
             return json.dumps(object)
 
         return self.renderer.capsules(channel=channel,
