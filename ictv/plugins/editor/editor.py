@@ -27,7 +27,7 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 import magic
-import web
+import flask
 from sqlobject import AND, JSONCol, sqlhub
 from sqlobject import IntCol, StringCol, ForeignKey, DateTimeCol, SQLMultipleJoin, DatabaseIndex, \
     SQLObject
@@ -43,7 +43,6 @@ from ictv.plugin_manager.plugin_capsule import PluginCapsule
 from ictv.plugin_manager.plugin_slide import PluginSlide
 from ictv.plugin_manager.plugin_utils import SQLObjectAndABCMeta, VideoSlide, MisconfiguredParameters
 from ictv.storage.cache_manager import CacheManager
-
 
 def get_content(channelid, capsuleid=None) -> Iterable[PluginCapsule]:
     content = []
@@ -141,7 +140,7 @@ class EditorSlide(SQLObject, PluginSlide, metaclass=SQLObjectAndABCMeta):
             return video_slide
 
         # TODO: Stream asset to disk instead of loading it into memory
-        video_blob = video.file.read()
+        video_blob = video.read()
         if magic.from_buffer(video_blob, mime=True) != 'video/webm':
             def transcode_callback(success_status):
                 if success_status:
@@ -205,7 +204,7 @@ class EditorSlide(SQLObject, PluginSlide, metaclass=SQLObjectAndABCMeta):
 
     def get_render_path(self, ictv_home=None):
         if ictv_home is None:
-            ictv_home = web.ctx.home
+            ictv_home = flask.g.home
         return '%s%s/%d/%d' % (ictv_home, 'render', self.capsule.id, self.id)
 
     @property
@@ -234,7 +233,7 @@ class EditorCapsule(SQLObject, PluginCapsule, metaclass=SQLObjectAndABCMeta):
     capsule_id = DatabaseIndex('name', 'channel', unique=True)
     creation_date = DateTimeCol(notNone=True, default=lambda: datetime.now())
     slides = SQLMultipleJoin('EditorSlide', joinColumn='capsule_id')
-    theme = StringCol(default=lambda: web.ctx.app_stack[0].config['default_theme'])
+    theme = StringCol(default=lambda: flask.current_app.config['default_theme'])
     c_order = IntCol(notNone=True)
     validity_from = DateTimeCol(notNone=True)
     validity_to = DateTimeCol(notNone=True)

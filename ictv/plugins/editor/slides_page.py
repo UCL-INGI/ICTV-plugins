@@ -23,7 +23,6 @@ import datetime
 import json
 from json import JSONDecodeError
 
-import web
 from sqlobject import SQLObjectNotFound
 from sqlobject.dberrors import DuplicateEntryError
 from wand.color import Color
@@ -38,10 +37,12 @@ from ictv.plugins.editor.editor import EditorCapsule, EditorSlide, AssetSlideMap
 from ictv.renderer.renderer import Themes
 from ictv.storage.storage_manager import StorageManager
 
+import flask
+import ictv.flask.response as resp
 
 class SlidesPage(EditorPage):
     @ChannelGate.contributor
-    def GET(self, capsuleid, channel):
+    def get(self, capsuleid, channel):
         try:
             caps_db = EditorCapsule.get(int(capsuleid))
             if caps_db.channel != channel:
@@ -54,11 +55,12 @@ class SlidesPage(EditorPage):
         return self.render_page(channel=channel, capsule=caps_db, slides=slides)
 
     @ChannelGate.contributor
-    def POST(self, capsuleid, channel):
+    def post(self, capsuleid, channel):
         try:
             caps_db = EditorCapsule.get(int(capsuleid))
             slides = caps_db.slides
-            form = web.input(pdf={}, video={})  # Force CGI FieldStorage object to be created for large files
+            form = self.form
+
             logger_extra = {'channel_name': channel.name, 'channel_id': channel.id}
             logger = get_logger('editor', channel)
             if caps_db.channel != channel:
@@ -140,7 +142,7 @@ class SlidesPage(EditorPage):
                     slide_files = []
                     try:
                         with Color(background_color) as bg:
-                            with Image(blob=form.pdf.file.read(), resolution=150) as pdf:
+                            with Image(blob=form.pdf.read(), resolution=150) as pdf:
                                 for i, page in enumerate(pdf.sequence):
                                     img_page = Image(image=page)
                                     img_page.background_color = bg
@@ -171,7 +173,7 @@ class SlidesPage(EditorPage):
                     except TypeError as e:
                         raise ImmediateFeedback(form.action, 'invalid_video_format', e.type)
                 else:
-                    raise web.badrequest()
+                    resp.badrequest()
             elif form.action == 'duration':
                 try:
                     slide_id = int(form.id)
